@@ -179,21 +179,30 @@ final class EmailConfigWindowController: NSWindowController {
 
     private func loadCurrentConfig() {
         do {
-            guard let config = try EmailNotificationConfigLoader.load() else {
+            if let config = try EmailNotificationConfigLoader.load() {
+                enabledCheckbox.state = .on
+                smtpURLField.stringValue = config.smtpURL
+                usernameField.stringValue = config.username ?? ""
+                passwordValue = config.password ?? ""
+                passwordCommandField.stringValue = config.passwordCommand ?? ""
+                fromField.stringValue = config.from
+                toField.stringValue = config.to.joined(separator: ", ")
+                subjectField.stringValue = config.subject
+                tlsCheckbox.state = config.requiresTLS ? .on : .off
+            } else {
+                // Config may be disabled — try to load raw JSON to pre-fill fields
                 enabledCheckbox.state = .off
-                updateFieldStates()
-                return
+                if let raw = try? loadRawConfig() {
+                    smtpURLField.stringValue = raw["smtpURL"] as? String ?? ""
+                    usernameField.stringValue = raw["username"] as? String ?? ""
+                    passwordValue = raw["password"] as? String ?? ""
+                    passwordCommandField.stringValue = raw["passwordCommand"] as? String ?? ""
+                    fromField.stringValue = raw["from"] as? String ?? ""
+                    toField.stringValue = (raw["to"] as? [String])?.joined(separator: ", ") ?? (raw["to"] as? String) ?? ""
+                    subjectField.stringValue = raw["subject"] as? String ?? ""
+                    tlsCheckbox.state = (raw["requiresTLS"] as? Bool) ?? true ? .on : .off
+                }
             }
-
-            enabledCheckbox.state = .on
-            smtpURLField.stringValue = config.smtpURL
-            usernameField.stringValue = config.username ?? ""
-            passwordValue = config.password ?? ""
-            passwordCommandField.stringValue = config.passwordCommand ?? ""
-            fromField.stringValue = config.from
-            toField.stringValue = config.to.joined(separator: ", ")
-            subjectField.stringValue = config.subject
-            tlsCheckbox.state = config.requiresTLS ? .on : .off
         } catch {
             let alert = NSAlert()
             alert.messageText = "加载邮件配置失败"
@@ -202,6 +211,15 @@ final class EmailConfigWindowController: NSWindowController {
             alert.beginSheetModal(for: window!, completionHandler: nil)
         }
         updateFieldStates()
+    }
+
+    private func loadRawConfig() throws -> [String: Any]? {
+        let configURL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".aistatus", isDirectory: true)
+            .appendingPathComponent("email.json")
+        guard FileManager.default.fileExists(atPath: configURL.path) else { return nil }
+        let data = try Data(contentsOf: configURL)
+        return try JSONSerialization.jsonObject(with: data) as? [String: Any]
     }
 
     @objc private func enabledToggled() {
@@ -282,7 +300,28 @@ final class EmailConfigWindowController: NSWindowController {
     }
 
     private func saveDisabledConfig() {
-        writeConfig(["enabled": false])
+        // Preserve all SMTP settings, only flip enabled to false
+        var config: [String: Any] = ["enabled": false]
+        let smtpURL = smtpURLField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let username = usernameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let password = passwordValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let passwordCommand = passwordCommandField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let from = fromField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let to = toField.stringValue
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let subject = subjectField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if !smtpURL.isEmpty { config["smtpURL"] = smtpURL }
+        if !username.isEmpty { config["username"] = username }
+        if !password.isEmpty { config["password"] = password }
+        if !passwordCommand.isEmpty { config["passwordCommand"] = passwordCommand }
+        if !from.isEmpty { config["from"] = from }
+        if !to.isEmpty { config["to"] = to }
+        if !subject.isEmpty { config["subject"] = subject }
+        config["requiresTLS"] = tlsCheckbox.state == .on
+        writeConfig(config)
     }
 
     private func writeConfig(_ config: [String: Any]) {
