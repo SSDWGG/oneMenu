@@ -10,6 +10,7 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
     private let claudeMonitor = ClaudeStatusMonitor()
     private let colorPreferences = StatusLightColorPreferences()
     private let sleepPreventionPreferences = SleepPreventionPreferences()
+    private let sessionNotificationPreferences = SessionNotificationPreferences()
     private let sleepPreventer = SleepPreventer()
     private let allWorkEmailNotifier = AllWorkEmailNotifier()
     private let notificationCenter = UNUserNotificationCenter.current()
@@ -29,6 +30,7 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
     private let runningColorMenu = NSMenu(title: "运行时灯颜色")
     private let idleColorMenu = NSMenu(title: "空闲时灯颜色")
     private let preventSleepMenuItem = NSMenuItem(title: "保持 Mac 活跃（防休眠）", action: #selector(toggleSleepPrevention(_:)), keyEquivalent: "")
+    private let sessionNotificationMenuItem = NSMenuItem(title: "会话结束通知", action: #selector(toggleSessionNotification(_:)), keyEquivalent: "")
     private var emailConfigWindowController: EmailConfigWindowController?
 
     private var timer: Timer?
@@ -52,6 +54,7 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
         configureMenu()
         configureNotifications()
         applySleepPreventionPreference()
+        updateSessionNotificationMenuCheck()
         refresh()
 
         let timer = Timer(timeInterval: 2.0, repeats: true) { [weak self] _ in
@@ -99,7 +102,9 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
         menu.addItem(errorMenuItem)
         menu.addItem(.separator())
         preventSleepMenuItem.target = self
+        sessionNotificationMenuItem.target = self
         menu.addItem(preventSleepMenuItem)
+        menu.addItem(sessionNotificationMenuItem)
         menu.addItem(.separator())
 
         let emailConfigItem = NSMenuItem(title: "邮件通知设置...", action: #selector(openEmailConfig(_:)), keyEquivalent: "")
@@ -178,6 +183,12 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
     @objc private func toggleSleepPrevention(_ sender: NSMenuItem) {
         sleepPreventionPreferences.isEnabled.toggle()
         applySleepPreventionPreference()
+        refresh()
+    }
+
+    @objc private func toggleSessionNotification(_ sender: NSMenuItem) {
+        sessionNotificationPreferences.isEnabled.toggle()
+        updateSessionNotificationMenuCheck()
         refresh()
     }
 
@@ -366,6 +377,10 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 
     private func sendSessionEndedNotification(for session: TrackedSession) {
+        guard sessionNotificationPreferences.isEnabled else {
+            return
+        }
+
         let content = UNMutableNotificationContent()
         content.title = "\(session.provider) 会话已结束"
         content.body = session.title
@@ -434,6 +449,10 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     private func updateSleepPreventionMenuCheck() {
         preventSleepMenuItem.state = sleepPreventer.isEnabled ? .on : .off
+    }
+
+    private func updateSessionNotificationMenuCheck() {
+        sessionNotificationMenuItem.state = sessionNotificationPreferences.isEnabled ? .on : .off
     }
 
     private func providerStateTitle(name: String, isThinking: Bool, activeCount: Int) -> String {
@@ -713,6 +732,28 @@ private final class SleepPreventionPreferences {
 
     var isEnabled: Bool {
         get { defaults.bool(forKey: Key.isEnabled) }
+        set { defaults.set(newValue, forKey: Key.isEnabled) }
+    }
+}
+
+private final class SessionNotificationPreferences {
+    private enum Key {
+        static let isEnabled = "sessionEndNotificationEnabled"
+    }
+
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
+
+    var isEnabled: Bool {
+        get {
+            if defaults.object(forKey: Key.isEnabled) == nil {
+                return true // default on
+            }
+            return defaults.bool(forKey: Key.isEnabled)
+        }
         set { defaults.set(newValue, forKey: Key.isEnabled) }
     }
 }
