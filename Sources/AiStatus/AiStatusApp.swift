@@ -360,7 +360,7 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
         Dictionary(
             uniqueKeysWithValues: sessions.map { session in
                 let id = "\(provider):\(session.id)"
-                return (id, TrackedSession(id: id, provider: provider, title: session.title))
+                return (id, TrackedSession(id: id, provider: provider, title: session.title, lastAnswer: session.lastAnswer))
             }
         )
     }
@@ -463,6 +463,7 @@ private struct TrackedSession: Equatable {
     let id: String
     let provider: String
     let title: String
+    let lastAnswer: String?
 }
 
 private enum EmailStatus: Equatable {
@@ -516,11 +517,16 @@ private final class AllWorkEmailNotifier {
         }
         let sessionRows = sorted.map { session in
             let badgeColor = session.provider == "GPT" ? "#10b981" : "#d97706"
+            let answerText = session.lastAnswer.map { escapedHTML($0) } ?? escapedHTML(session.title)
+            let titleLine = session.lastAnswer != nil
+                ? "<div style=\"font-size:11px;color:#9ca3af;margin-top:4px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif\">\(escapedHTML(session.title))</div>"
+                : ""
             return """
             <tr>
-              <td style="padding:10px 0;border-bottom:1px solid #f0f0f0">
+              <td style="padding:12px 0;border-bottom:1px solid #f0f0f0">
                 <span style="display:inline-block;background:\(badgeColor);color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;margin-right:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">\(session.provider)</span>
-                <span style="color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px">\(escapedHTML(session.title))</span>
+                <span style="color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.6">\(answerText)</span>
+                \(titleLine)
               </td>
             </tr>
             """
@@ -592,7 +598,7 @@ private final class AllWorkEmailNotifier {
                       <!-- Divider -->
                       <tr>
                         <td style="border-top:1px solid #f0f0f0;padding-top:20px">
-                          <span style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">Completed Sessions</span>
+                          <span style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">Last Response</span>
                         </td>
                       </tr>
 

@@ -3,10 +3,12 @@ import Foundation
 public struct StatusSessionSummary: Equatable, Hashable {
     public let id: String
     public let title: String
+    public let lastAnswer: String?
 
-    public init(id: String, title: String) {
+    public init(id: String, title: String, lastAnswer: String? = nil) {
         self.id = id
         self.title = title
+        self.lastAnswer = lastAnswer
     }
 }
 
@@ -36,14 +38,14 @@ enum SessionTitleNormalizer {
         return String(normalized.prefix(maxLength - 3)).trimmingCharacters(in: .whitespacesAndNewlines) + "..."
     }
 
-    static func title(fromContent content: Any?) -> String? {
+    static func title(fromContent content: Any?, maxLength: Int = 80) -> String? {
         if let text = content as? String {
-            return title(from: text)
+            return title(from: text, maxLength: maxLength)
         }
 
         if let parts = content as? [[String: Any]] {
             for part in parts {
-                if let title = title(from: part["text"] as? String) {
+                if let title = title(from: part["text"] as? String, maxLength: maxLength) {
                     return title
                 }
             }

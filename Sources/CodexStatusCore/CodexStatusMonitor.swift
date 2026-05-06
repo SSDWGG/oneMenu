@@ -185,7 +185,8 @@ public final class CodexStatusMonitor {
             .map { activity in
                 StatusSessionSummary(
                     id: sessionIdentifier(for: activity),
-                    title: sessionTitle(for: activity)
+                    title: sessionTitle(for: activity),
+                    lastAnswer: activity.lastAnswer
                 )
             }
     }
@@ -248,6 +249,7 @@ struct SessionActivity {
     var latestEventType: String?
     var lastTaskStartedAt: Date?
     var lastTaskCompletedAt: Date?
+    var lastAnswer: String?
     var sawAnyEvent = false
 
     var isOpenTask: Bool {
@@ -296,6 +298,9 @@ final class SessionActivityParser {
             activity.latestEventType = event.eventType
             if activity.title == nil {
                 activity.title = event.titleCandidate
+            }
+            if let contentText = event.contentText {
+                activity.lastAnswer = contentText
             }
 
             if event.topLevelType == "event_msg" {
@@ -346,12 +351,26 @@ final class SessionActivityParser {
         let eventType = payload?["type"] as? String ?? topLevelType
         let titleCandidate = SessionTitleNormalizer.explicitTitle(in: object)
             ?? userTitleCandidate(from: payload)
+        let contentText = extractContentText(topLevelType: topLevelType, payload: payload, object: object)
         return ParsedSessionEvent(
             timestamp: timestamp,
             topLevelType: topLevelType,
             eventType: eventType,
-            titleCandidate: titleCandidate
+            titleCandidate: titleCandidate,
+            contentText: contentText
         )
+    }
+
+    private func extractContentText(topLevelType: String, payload: [String: Any]?, object: [String: Any]) -> String? {
+        switch topLevelType {
+        case "assistant":
+            break
+        default:
+            return nil
+        }
+
+        let message = object["message"] as? [String: Any]
+        return SessionTitleNormalizer.title(fromContent: message?["content"] ?? payload?["content"], maxLength: 200)
     }
 
     private func parseTimestamp(_ timestamp: String) -> Date? {
@@ -372,4 +391,5 @@ private struct ParsedSessionEvent {
     let topLevelType: String
     let eventType: String
     let titleCandidate: String?
+    let contentText: String?
 }

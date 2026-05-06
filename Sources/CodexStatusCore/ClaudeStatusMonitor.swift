@@ -179,7 +179,8 @@ public final class ClaudeStatusMonitor {
             .map { activity in
                 StatusSessionSummary(
                     id: activity.fileURL.path,
-                    title: sessionTitle(for: activity)
+                    title: sessionTitle(for: activity),
+                    lastAnswer: activity.lastAnswer
                 )
             }
     }
@@ -202,6 +203,7 @@ struct ClaudeSessionActivity {
     var latestEventType: String?
     var lastTaskStartedAt: Date?
     var lastTaskCompletedAt: Date?
+    var lastAnswer: String?
     var sawAnyEvent = false
 
     var isOpenTask: Bool {
@@ -240,6 +242,9 @@ final class ClaudeSessionActivityParser {
             activity.latestEventType = event.eventType
             if activity.title == nil {
                 activity.title = event.titleCandidate
+            }
+            if let contentText = event.contentText {
+                activity.lastAnswer = contentText
             }
 
             switch event.turnState {
@@ -289,12 +294,16 @@ final class ClaudeSessionActivityParser {
         let stopReason = message?["stop_reason"] as? String
         let titleCandidate = SessionTitleNormalizer.explicitTitle(in: object)
             ?? userTitleCandidate(topLevelType: topLevelType, message: message)
+        let contentText = topLevelType == "assistant"
+            ? SessionTitleNormalizer.title(fromContent: message?["content"], maxLength: 200)
+            : nil
 
         switch topLevelType {
         case "user":
             return ParsedClaudeEvent(
                 timestamp: timestamp,
                 eventType: "user",
+                contentText: nil,
                 turnState: .started,
                 titleCandidate: titleCandidate
             )
@@ -303,6 +312,7 @@ final class ClaudeSessionActivityParser {
                 return ParsedClaudeEvent(
                     timestamp: timestamp,
                     eventType: "assistant:end_turn",
+                    contentText: contentText,
                     turnState: .completed,
                     titleCandidate: titleCandidate
                 )
@@ -312,6 +322,7 @@ final class ClaudeSessionActivityParser {
             return ParsedClaudeEvent(
                 timestamp: timestamp,
                 eventType: "assistant:\(suffix)",
+                contentText: contentText,
                 turnState: .started,
                 titleCandidate: titleCandidate
             )
@@ -319,6 +330,7 @@ final class ClaudeSessionActivityParser {
             return ParsedClaudeEvent(
                 timestamp: timestamp,
                 eventType: topLevelType,
+                contentText: nil,
                 turnState: .ignored,
                 titleCandidate: titleCandidate
             )
@@ -347,6 +359,7 @@ private enum ClaudeTurnState {
 private struct ParsedClaudeEvent {
     let timestamp: Date
     let eventType: String
+    let contentText: String?
     let turnState: ClaudeTurnState
     let titleCandidate: String?
 }
