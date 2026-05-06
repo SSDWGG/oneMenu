@@ -6,22 +6,28 @@ public struct EmailMessage: Equatable {
     public let subject: String
     public let body: String
     public let date: Date
+    public let isHTML: Bool
 
     public init(
         from: String,
         to: [String],
         subject: String,
         body: String,
-        date: Date = Date()
+        date: Date = Date(),
+        isHTML: Bool = false
     ) {
         self.from = from
         self.to = to
         self.subject = subject
         self.body = body
         self.date = date
+        self.isHTML = isHTML
     }
 
     public func rfc5322Data(messageID: String = "<\(UUID().uuidString)@aistatus.local>") -> Data {
+        let contentType = isHTML
+            ? "Content-Type: text/html; charset=utf-8"
+            : "Content-Type: text/plain; charset=utf-8"
         let headers = [
             "From: \(from)",
             "To: \(to.joined(separator: ", "))",
@@ -29,7 +35,7 @@ public struct EmailMessage: Equatable {
             "Date: \(Self.rfc5322DateFormatter.string(from: date))",
             "Message-ID: \(messageID)",
             "MIME-Version: 1.0",
-            "Content-Type: text/plain; charset=utf-8",
+            contentType,
             "Content-Transfer-Encoding: 8bit"
         ]
 
@@ -114,6 +120,7 @@ public final class SMTPEmailSender {
         if let username = config.username {
             let password = try resolvedPassword()
             lines.append(configLine("user", "\(username):\(password)"))
+            lines.append(configLine("login-options", "AUTH=LOGIN"))
         }
 
         if config.requiresTLS {
@@ -211,7 +218,27 @@ public enum SMTPEmailSenderError: Error, LocalizedError, Equatable {
         case .emptyPasswordCommandOutput:
             return "邮件密码命令没有输出密码"
         case let .curlFailed(status, detail):
-            return detail.isEmpty ? "邮件发送失败（curl 退出码 \(status)）" : "邮件发送失败（curl 退出码 \(status)）：\(detail)"
+            let reason = Self.curlExitCodeDescription(status)
+            if detail.isEmpty {
+                return "邮件发送失败 — \(reason)"
+            }
+            return "邮件发送失败 — \(reason)（\(detail)）"
+        }
+    }
+
+    private static func curlExitCodeDescription(_ code: Int32) -> String {
+        switch code {
+        case 1: return "不支持的协议"
+        case 5: return "无法解析代理主机"
+        case 6: return "无法解析主机名，请检查 SMTP 地址"
+        case 7: return "无法连接到 SMTP 服务器，请检查地址和端口"
+        case 28: return "连接超时，请检查 SMTP 地址和网络"
+        case 35: return "TLS 握手失败，请检查 TLS 设置"
+        case 51: return "服务器不支持 STARTTLS"
+        case 55: return "发送数据失败，网络异常"
+        case 60: return "SSL 证书验证失败"
+        case 67: return "登录被拒绝，请检查授权码是否正确、SMTP 服务是否已开启"
+        default: return "curl 退出码 \(code)"
         }
     }
 }

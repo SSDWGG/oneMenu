@@ -17,26 +17,24 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
     private let menu = NSMenu()
     private let stateMenuItem = NSMenuItem(title: "状态：检测中", action: nil, keyEquivalent: "")
     private let gptStateMenuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-    private let gptDetailMenuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let claudeStateMenuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-    private let claudeDetailMenuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private let gptIdleSessionsMenuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private let claudeIdleSessionsMenuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private let gptActiveMenu = NSMenu(title: "GPT 活跃会话")
+    private let gptIdleMenu = NSMenu(title: "GPT 闲置会话")
+    private let claudeActiveMenu = NSMenu(title: "Claude 活跃会话")
+    private let claudeIdleMenu = NSMenu(title: "Claude 闲置会话")
+    private let emailStatusMenuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let errorMenuItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-    private let gptActiveSessionsMenuItem = NSMenuItem(title: "GPT 活跃会话", action: nil, keyEquivalent: "")
-    private let gptIdleSessionsMenuItem = NSMenuItem(title: "GPT 闲置会话", action: nil, keyEquivalent: "")
-    private let claudeActiveSessionsMenuItem = NSMenuItem(title: "Claude 活跃会话", action: nil, keyEquivalent: "")
-    private let claudeIdleSessionsMenuItem = NSMenuItem(title: "Claude 闲置会话", action: nil, keyEquivalent: "")
-    private let gptActiveSessionsMenu = NSMenu(title: "GPT 活跃会话")
-    private let gptIdleSessionsMenu = NSMenu(title: "GPT 闲置会话")
-    private let claudeActiveSessionsMenu = NSMenu(title: "Claude 活跃会话")
-    private let claudeIdleSessionsMenu = NSMenu(title: "Claude 闲置会话")
     private let runningColorMenu = NSMenu(title: "运行时灯颜色")
     private let idleColorMenu = NSMenu(title: "空闲时灯颜色")
     private let preventSleepMenuItem = NSMenuItem(title: "保持 Mac 活跃（防休眠）", action: #selector(toggleSleepPrevention(_:)), keyEquivalent: "")
+    private var emailConfigWindowController: EmailConfigWindowController?
 
     private var timer: Timer?
     private var powerAssertionErrorMessage: String?
     private var notificationErrorMessage: String?
-    private var emailErrorMessage: String?
+    private var emailStatus: EmailStatus = .notConfigured
     private var activeWorkTransitionTracker = ActiveWorkTransitionTracker()
     private var previousActiveSessionsByID: [String: TrackedSession]?
 
@@ -79,28 +77,34 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 
     private func configureMenu() {
-        [stateMenuItem, gptStateMenuItem, gptDetailMenuItem, claudeStateMenuItem, claudeDetailMenuItem, errorMenuItem].forEach {
+        [stateMenuItem, gptStateMenuItem, claudeStateMenuItem, errorMenuItem, gptIdleSessionsMenuItem, claudeIdleSessionsMenuItem].forEach {
             $0.isEnabled = false
         }
-        gptActiveSessionsMenuItem.submenu = gptActiveSessionsMenu
-        gptIdleSessionsMenuItem.submenu = gptIdleSessionsMenu
-        claudeActiveSessionsMenuItem.submenu = claudeActiveSessionsMenu
-        claudeIdleSessionsMenuItem.submenu = claudeIdleSessionsMenu
+
+        gptStateMenuItem.submenu = gptActiveMenu
+        claudeStateMenuItem.submenu = claudeActiveMenu
+        gptIdleSessionsMenuItem.submenu = gptIdleMenu
+        claudeIdleSessionsMenuItem.submenu = claudeIdleMenu
+        emailStatusMenuItem.isEnabled = false
 
         menu.addItem(stateMenuItem)
         menu.addItem(.separator())
         menu.addItem(gptStateMenuItem)
-        menu.addItem(gptDetailMenuItem)
-        menu.addItem(gptActiveSessionsMenuItem)
         menu.addItem(gptIdleSessionsMenuItem)
         menu.addItem(claudeStateMenuItem)
-        menu.addItem(claudeDetailMenuItem)
-        menu.addItem(claudeActiveSessionsMenuItem)
         menu.addItem(claudeIdleSessionsMenuItem)
+        menu.addItem(.separator())
+        menu.addItem(emailStatusMenuItem)
         menu.addItem(errorMenuItem)
         menu.addItem(.separator())
         preventSleepMenuItem.target = self
         menu.addItem(preventSleepMenuItem)
+        menu.addItem(.separator())
+
+        let emailConfigItem = NSMenuItem(title: "邮件通知设置...", action: #selector(openEmailConfig(_:)), keyEquivalent: "")
+        emailConfigItem.target = self
+        menu.addItem(emailConfigItem)
+
         menu.addItem(.separator())
         addColorMenus()
         menu.addItem(.separator())
@@ -176,6 +180,14 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
         refresh()
     }
 
+    @objc private func openEmailConfig(_ sender: Any?) {
+        if emailConfigWindowController == nil || emailConfigWindowController?.window == nil {
+            emailConfigWindowController = EmailConfigWindowController()
+        }
+        emailConfigWindowController?.showWindow(sender)
+        emailConfigWindowController?.window?.makeKey()
+    }
+
     @objc private func openCodexFolder(_ sender: Any?) {
         NSWorkspace.shared.open(gptMonitor.codexHome)
     }
@@ -208,33 +220,48 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
 
         stateMenuItem.title = "状态：\(stateText)"
+
+        // GPT: state line doubles as active sessions menu
         gptStateMenuItem.title = providerStateTitle(name: "GPT", isThinking: gptSnapshot.isThinking, activeCount: gptSnapshot.activeSessionCount)
-        gptDetailMenuItem.title = providerDetailTitle(
-            latestSessionTitle: gptSnapshot.latestSessionTitle
-        )
-        populateSessionMenu(gptActiveSessionsMenu, titles: gptSnapshot.activeSessionTitles)
-        populateSessionMenu(gptIdleSessionsMenu, titles: gptSnapshot.idleSessionTitles)
+        populateSessionMenu(gptActiveMenu, titles: gptSnapshot.activeSessionTitles)
+        gptIdleSessionsMenuItem.title = "GPT 闲置会话 \(gptSnapshot.idleSessionTitles.count)"
+        populateSessionMenu(gptIdleMenu, titles: gptSnapshot.idleSessionTitles)
 
+        // Claude: state line doubles as active sessions menu
         claudeStateMenuItem.title = providerStateTitle(name: "Claude", isThinking: claudeSnapshot.isThinking, activeCount: claudeSnapshot.activeSessionCount)
-        claudeDetailMenuItem.title = providerDetailTitle(
-            latestSessionTitle: claudeSnapshot.latestSessionTitle
-        )
-        populateSessionMenu(claudeActiveSessionsMenu, titles: claudeSnapshot.activeSessionTitles)
-        populateSessionMenu(claudeIdleSessionsMenu, titles: claudeSnapshot.idleSessionTitles)
-        updateSessionTransitionNotifications(gptSnapshot: gptSnapshot, claudeSnapshot: claudeSnapshot)
+        populateSessionMenu(claudeActiveMenu, titles: claudeSnapshot.activeSessionTitles)
+        claudeIdleSessionsMenuItem.title = "Claude 闲置会话 \(claudeSnapshot.idleSessionTitles.count)"
+        populateSessionMenu(claudeIdleMenu, titles: claudeSnapshot.idleSessionTitles)
 
+        updateSessionTransitionNotifications(gptSnapshot: gptSnapshot, claudeSnapshot: claudeSnapshot)
+        updateEmailStatusDisplay()
+
+        // Errors
         let errors = [
             gptSnapshot.errorMessage,
             claudeSnapshot.errorMessage,
             powerAssertionErrorMessage,
-            notificationErrorMessage,
-            emailErrorMessage
+            notificationErrorMessage
         ].compactMap { $0 }
         if !errors.isEmpty {
             errorMenuItem.title = "提示：\(errors.joined(separator: "；"))"
             errorMenuItem.isHidden = false
         } else {
             errorMenuItem.isHidden = true
+        }
+    }
+
+    private func updateEmailStatusDisplay() {
+        switch emailStatus {
+        case .notConfigured:
+            emailStatusMenuItem.title = "邮件：未配置"
+        case .configured:
+            emailStatusMenuItem.title = "邮件：已配置，等待所有会话结束"
+        case let .sent(date):
+            let time = DateFormatter.localizedString(from: date, dateStyle: .none, timeStyle: .short)
+            emailStatusMenuItem.title = "邮件：已发送 \(time)"
+        case let .failed(error):
+            emailStatusMenuItem.title = "邮件：发送失败 — \(error)"
         }
     }
 
@@ -273,6 +300,10 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
         guard let previousActiveSessionsByID else {
             self.previousActiveSessionsByID = currentActiveSessions
+            // Detect if email is configured at startup
+            if emailStatus == .notConfigured {
+                refreshEmailConfiguredState()
+            }
             return
         }
 
@@ -284,6 +315,16 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
 
         self.previousActiveSessionsByID = currentActiveSessions
+    }
+
+    private func refreshEmailConfiguredState() {
+        do {
+            if try EmailNotificationConfigLoader.load() != nil {
+                emailStatus = .configured
+            }
+        } catch {
+            emailStatus = .failed(error.localizedDescription)
+        }
     }
 
     private func trackedSessions(
@@ -324,7 +365,11 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     private func sendAllWorkFinishedEmail(endedSessions: [TrackedSession]) {
         allWorkEmailNotifier.send(endedSessions: endedSessions) { [weak self] errorMessage in
-            self?.emailErrorMessage = errorMessage
+            if let errorMessage {
+                self?.emailStatus = .failed(errorMessage)
+            } else {
+                self?.emailStatus = .sent(Date())
+            }
             self?.refresh()
         }
     }
@@ -370,12 +415,6 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
         return "\(name)：\(stateText) · 活跃会话 \(activeCount)"
     }
 
-    private func providerDetailTitle(
-        latestSessionTitle: String?
-    ) -> String {
-        "最近事件：\(latestSessionTitle ?? "无")"
-    }
-
     private func populateSessionMenu(_ menu: NSMenu, titles: [String]) {
         menu.removeAllItems()
 
@@ -400,6 +439,13 @@ private struct TrackedSession: Equatable {
     let title: String
 }
 
+private enum EmailStatus: Equatable {
+    case notConfigured
+    case configured
+    case sent(Date)
+    case failed(String)
+}
+
 private final class AllWorkEmailNotifier {
     private let queue = DispatchQueue(label: "AiStatus.emailNotifier")
 
@@ -412,7 +458,7 @@ private final class AllWorkEmailNotifier {
             do {
                 guard let config = try EmailNotificationConfigLoader.load() else {
                     DispatchQueue.main.async {
-                        completion(nil)
+                        completion("邮件通知未启用")
                     }
                     return
                 }
@@ -421,8 +467,9 @@ private final class AllWorkEmailNotifier {
                     from: config.from,
                     to: config.to,
                     subject: config.subject,
-                    body: Self.messageBody(endedSessions: endedSessions, finishedAt: finishedAt),
-                    date: finishedAt
+                    body: Self.htmlBody(endedSessions: endedSessions, finishedAt: finishedAt),
+                    date: finishedAt,
+                    isHTML: true
                 )
                 try SMTPEmailSender(config: config).send(message: message)
                 DispatchQueue.main.async {
@@ -430,31 +477,145 @@ private final class AllWorkEmailNotifier {
                 }
             } catch {
                 DispatchQueue.main.async {
-                    completion("发送邮件失败：\(error.localizedDescription)")
+                    completion(error.localizedDescription)
                 }
             }
         }
     }
 
-    private static func messageBody(endedSessions: [TrackedSession], finishedAt: Date) -> String {
-        let sessionLines = endedSessions
-            .sorted { lhs, rhs in
-                lhs.provider == rhs.provider ? lhs.title < rhs.title : lhs.provider < rhs.provider
-            }
-            .map { "- [\($0.provider)] \($0.title)" }
+    private static func htmlBody(endedSessions: [TrackedSession], finishedAt: Date) -> String {
+        let sorted = endedSessions.sorted { lhs, rhs in
+            lhs.provider == rhs.provider ? lhs.title < rhs.title : lhs.provider < rhs.provider
+        }
+        let sessionRows = sorted.map { session in
+            let badgeColor = session.provider == "GPT" ? "#10b981" : "#d97706"
+            return """
+            <tr>
+              <td style="padding:10px 0;border-bottom:1px solid #f0f0f0">
+                <span style="display:inline-block;background:\(badgeColor);color:#fff;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;margin-right:10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">\(session.provider)</span>
+                <span style="color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px">\(escapedHTML(session.title))</span>
+              </td>
+            </tr>
+            """
+        }.joined()
 
-        let sessionSummary = sessionLines.isEmpty
-            ? "无会话详情"
-            : sessionLines.joined(separator: "\n")
+        let sessionSection: String
+        if sorted.isEmpty {
+            sessionSection = """
+            <tr>
+              <td style="padding:10px 0;color:#9ca3af;font-size:14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">无会话详情</td>
+            </tr>
+            """
+        } else {
+            sessionSection = sessionRows
+        }
+
+        let timeStr = DateFormatter.localizedString(from: finishedAt, dateStyle: .medium, timeStyle: .medium)
 
         return """
-        AiStatus 检测到 GPT / Claude 均已空闲，所有 AI 工作已经结束。
+        <!DOCTYPE html>
+        <html lang="zh-CN">
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        </head>
+        <body style="margin:0;padding:0;background:#f5f5f5">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f5f5f5;padding:30px 0">
+          <tr>
+            <td align="center">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="520" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.06)">
 
-        结束时间：\(DateFormatter.localizedString(from: finishedAt, dateStyle: .medium, timeStyle: .medium))
+                <!-- Header -->
+                <tr>
+                  <td style="background:linear-gradient(135deg,#1e1e2e,#2d2d44);padding:32px 36px;text-align:center">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding-bottom:16px">
+                          <span style="display:inline-block;width:40px;height:40px;background:rgba(16,185,129,0.15);border-radius:50%;text-align:center;line-height:40px">
+                            <span style="font-size:20px">&#x2705;</span>
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:20px;font-weight:700;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:0.5px">
+                          AI &#xB7; Work Complete
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="font-size:13px;color:rgba(255,255,255,0.55);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding-top:6px">
+                          All AI sessions have finished
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
 
-        最后结束的会话：
-        \(sessionSummary)
+                <!-- Body -->
+                <tr>
+                  <td style="padding:36px">
+
+                    <!-- Message -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;padding-bottom:24px">
+                          AiStatus &#x68C0;&#x6D4B;&#x5230; GPT / Claude &#x5747;&#x5DF2;&#x7A7A;&#x95F2;&#xFF0C;<strong>&#x6240;&#x6709; AI &#x5DE5;&#x4F5C;&#x5DF2;&#x7ECF;&#x7ED3;&#x675F;</strong>&#x3002;
+                        </td>
+                      </tr>
+
+                      <!-- Divider -->
+                      <tr>
+                        <td style="border-top:1px solid #f0f0f0;padding-top:20px">
+                          <span style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">Completed Sessions</span>
+                        </td>
+                      </tr>
+
+                      \(sessionSection)
+                    </table>
+
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="background:#fafafa;padding:20px 36px;border-top:1px solid #f0f0f0">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="font-size:12px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+                          AiStatus
+                        </td>
+                        <td style="font-size:12px;color:#9ca3af;text-align:right;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+                          \(escapedHTML(timeStr))
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+              </table>
+
+              <!-- Fine print -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="520">
+                <tr>
+                  <td style="padding:16px 0;text-align:center;font-size:11px;color:#c0c0c0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+                    Sent by AiStatus &#xB7; macOS Menu Bar Monitor
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+        </table>
+        </body>
+        </html>
         """
+    }
+
+    private static func escapedHTML(_ text: String) -> String {
+        text
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
     }
 }
 
