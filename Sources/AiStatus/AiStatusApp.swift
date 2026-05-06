@@ -35,6 +35,7 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
     private var powerAssertionErrorMessage: String?
     private var notificationErrorMessage: String?
     private var emailStatus: EmailStatus = .notConfigured
+    private var lastEmailConfigModDate: Date?
     private var activeWorkTransitionTracker = ActiveWorkTransitionTracker()
     private var previousActiveSessionsByID: [String: TrackedSession]?
 
@@ -233,6 +234,7 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
         claudeIdleSessionsMenuItem.title = "Claude 闲置会话 \(claudeSnapshot.idleSessionTitles.count)"
         populateSessionMenu(claudeIdleMenu, titles: claudeSnapshot.idleSessionTitles)
 
+        refreshEmailConfiguredState()
         updateSessionTransitionNotifications(gptSnapshot: gptSnapshot, claudeSnapshot: claudeSnapshot)
         updateEmailStatusDisplay()
 
@@ -255,6 +257,8 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
         switch emailStatus {
         case .notConfigured:
             emailStatusMenuItem.title = "邮件：未配置"
+        case .disabled:
+            emailStatusMenuItem.title = "邮件：已关闭"
         case .configured:
             emailStatusMenuItem.title = "邮件：已配置，等待所有会话结束"
         case let .sent(date):
@@ -300,10 +304,6 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
         guard let previousActiveSessionsByID else {
             self.previousActiveSessionsByID = currentActiveSessions
-            // Detect if email is configured at startup
-            if emailStatus == .notConfigured {
-                refreshEmailConfiguredState()
-            }
             return
         }
 
@@ -318,11 +318,37 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 
     private func refreshEmailConfiguredState() {
+        let configURL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".aistatus", isDirectory: true)
+            .appendingPathComponent("email.json")
+
+        let currentModDate = (try? configURL.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+
+        // If config file hasn't changed, preserve transient states
+        if currentModDate == lastEmailConfigModDate {
+            if case .sent = emailStatus { return }
+            if case .failed = emailStatus { return }
+        }
+        lastEmailConfigModDate = currentModDate
+
+        let fileExists = FileManager.default.fileExists(atPath: configURL.path)
+
+        guard fileExists else {
+            if case .notConfigured = emailStatus { return }
+            emailStatus = .notConfigured
+            return
+        }
+
         do {
             if try EmailNotificationConfigLoader.load() != nil {
+                if case .configured = emailStatus { return }
                 emailStatus = .configured
+            } else {
+                if case .disabled = emailStatus { return }
+                emailStatus = .disabled
             }
         } catch {
+            if case let .failed(err) = emailStatus, err == error.localizedDescription { return }
             emailStatus = .failed(error.localizedDescription)
         }
     }
@@ -441,6 +467,7 @@ private struct TrackedSession: Equatable {
 
 private enum EmailStatus: Equatable {
     case notConfigured
+    case disabled
     case configured
     case sent(Date)
     case failed(String)
