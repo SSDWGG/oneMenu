@@ -1,0 +1,12 @@
+<Page x:Class="OneMenu.App.Pages.SleepPreventionPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="0,20,0,0">
+        <TextBlock Text="防休眠" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,6"/>
+        <TextBlock Text="保持系统活跃" FontSize="11" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Margin="0,0,0,20"/>
+
+        <CheckBox x:Name="EnableCheck" Content="保持活跃（防休眠）" FontSize="13"
+                  Checked="OnToggled" Unchecked="OnToggled" Margin="0,0,0,8"/>
+        <TextBlock x:Name="StatusLabel" FontSize="11" Margin="0,4,0,0"/>
+    </StackPanel>
+</Page>

@@ -1,0 +1,14 @@
+<Page x:Class="OneMenu.App.Pages.NotificationPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="0,20,0,0">
+        <TextBlock Text="通知" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,6"/>
+        <TextBlock Text="桌面与邮件" FontSize="11" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Margin="0,0,0,20"/>
+
+        <CheckBox x:Name="SessionNotifyCheck" Content="会话结束后发送通知" FontSize="13"
+                  IsChecked="{Binding SessionNotificationEnabled}" Margin="0,0,0,8"/>
+
+        <TextBlock Text="邮件通知将在 Phase 5 实现" FontSize="11"
+                   Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Margin="0,10,0,0"/>
+    </StackPanel>
+</Page>

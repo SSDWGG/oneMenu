@@ -1,0 +1,41 @@
+<Page x:Class="OneMenu.App.Pages.CountdownPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Margin="0,20,0,0">
+        <TextBlock Text="倒计时" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,6"/>
+        <TextBlock Text="秒与分钟" FontSize="11" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Margin="0,0,0,20"/>
+
+        <TextBlock Text="时长" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+        <StackPanel Orientation="Horizontal">
+            <TextBox x:Name="DurationValue" Width="80" TextAlignment="Right" FontSize="13"
+                     TextChanged="OnDurationChanged" Margin="0,0,8,0"/>
+            <ComboBox x:Name="DurationUnit" Width="80" SelectionChanged="OnDurationUnitChanged">
+                <ComboBoxItem Content="秒" Tag="Seconds"/>
+                <ComboBoxItem Content="分钟" Tag="Minutes"/>
+            </ComboBox>
+        </StackPanel>
+
+        <TextBlock Text="提醒提前量" FontSize="13" FontWeight="SemiBold" Margin="0,20,0,8"/>
+        <StackPanel Orientation="Horizontal">
+            <TextBox x:Name="ReminderValue" Width="80" TextAlignment="Right" FontSize="13"
+                     TextChanged="OnReminderChanged" Margin="0,0,8,0"/>
+            <ComboBox x:Name="ReminderUnit" Width="80" SelectionChanged="OnReminderUnitChanged">
+                <ComboBoxItem Content="秒" Tag="Seconds"/>
+                <ComboBoxItem Content="分钟" Tag="Minutes"/>
+            </ComboBox>
+        </StackPanel>
+
+        <TextBlock Text="提醒颜色" FontSize="13" FontWeight="SemiBold" Margin="0,20,0,8"/>
+        <ComboBox x:Name="ReminderColor" Width="160" HorizontalAlignment="Left"
+                  SelectionChanged="OnReminderColorChanged">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <Rectangle Width="14" Height="14" Fill="{Binding WpfBrush}" RadiusX="7" RadiusY="7" Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding Title}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+    </StackPanel>
+</Page>

@@ -1,0 +1,12 @@
+<Application x:Class="OneMenu.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnExplicitShutdown">
+    <Application.Resources>
+        <SolidColorBrush x:Key="StatusGreen" Color="#34C759" />
+        <SolidColorBrush x:Key="StatusOrange" Color="#FF9500" />
+        <SolidColorBrush x:Key="StatusRed" Color="#FF3B30" />
+        <SolidColorBrush x:Key="StatusGray" Color="#8E8E93" />
+        <SolidColorBrush x:Key="StatusBlue" Color="#007AFF" />
+    </Application.Resources>
+</Application>

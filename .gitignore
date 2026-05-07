@@ -5,5 +5,13 @@ dist/
 DerivedData/
 Resources/AppIcon.iconset/
 .env.deploy.local
-oneMenu.app/
+/oneMenu.app/
 .claude/
+
+# .NET / Windows
+win/**/bin/
+win/**/obj/
+*.user
+*.suo
+*.vs/
+
