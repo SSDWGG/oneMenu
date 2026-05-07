@@ -299,6 +299,13 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         hardwareFansMenuItem.submenu = hardwareFansMenu
         emailStatusMenuItem.isEnabled = false
 
+        let versionString = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
+        let buildString = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
+        let versionItem = NSMenuItem(title: "版本 \(versionString) (\(buildString))", action: nil, keyEquivalent: "")
+        versionItem.isEnabled = false
+        menu.addItem(versionItem)
+        menu.addItem(.separator())
+
         let settingsItem = NSMenuItem(title: "设置...", action: #selector(openSettings(_:)), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
@@ -320,12 +327,6 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         menu.addItem(openClaudeItem)
 
         menu.addItem(.separator())
-
-        let versionString = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
-        let buildString = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
-        let versionItem = NSMenuItem(title: "版本 \(versionString) (\(buildString))", action: nil, keyEquivalent: "")
-        versionItem.isEnabled = false
-        menu.addItem(versionItem)
 
         let quitItem = NSMenuItem(title: "退出 oneMenu", action: #selector(quit(_:)), keyEquivalent: "")
         quitItem.target = self
