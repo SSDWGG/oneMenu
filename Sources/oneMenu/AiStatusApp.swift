@@ -768,8 +768,8 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             let gptIcon = BrandIconImage.statusBarIcon(for: .gpt)
             button.image = gptIcon
             button.layer?.backgroundColor = gptSnapshot.isThinking
-                ? colorPreferences.runningColor.withAlphaComponent(0.35).cgColor
-                : colorPreferences.idleColor.withAlphaComponent(0.12).cgColor
+                ? colorPreferences.runningColor.withAlphaComponent(0.55).cgColor
+                : colorPreferences.idleColor.withAlphaComponent(0.22).cgColor
             button.toolTip = "Codex/GPT：\(gptStateText)"
             button.setAccessibilityLabel("Codex/GPT \(gptStateText)")
         }
@@ -778,8 +778,8 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             let claudeIcon = BrandIconImage.statusBarIcon(for: .claude)
             button.image = claudeIcon
             button.layer?.backgroundColor = claudeSnapshot.isThinking
-                ? colorPreferences.runningColor.withAlphaComponent(0.35).cgColor
-                : colorPreferences.idleColor.withAlphaComponent(0.12).cgColor
+                ? colorPreferences.runningColor.withAlphaComponent(0.55).cgColor
+                : colorPreferences.idleColor.withAlphaComponent(0.22).cgColor
             button.toolTip = "Claude：\(claudeStateText)"
             button.setAccessibilityLabel("Claude \(claudeStateText)")
         }
@@ -3122,35 +3122,30 @@ private enum StatusProviderIcon {
     case gpt
     case claude
 
-    var fileName: String {
+    var baseName: String {
         switch self {
-        case .gpt:
-            return "openai"
-        case .claude:
-            return "claude-color"
+        case .gpt: return "openai"
+        case .claude: return "claude"
         }
     }
 
     var fallbackTitle: String {
         switch self {
-        case .gpt:
-            return "GPT"
-        case .claude:
-            return "C"
+        case .gpt: return "GPT"
+        case .claude: return "C"
         }
     }
 
     var currentColor: NSColor {
-        switch self {
-        case .gpt:
-            return .labelColor
-        case .claude:
-            return .labelColor
-        }
+        .labelColor
     }
 }
 
 private enum BrandIconImage {
+    private static var isDarkAppearance: Bool {
+        NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+
     static func statusBarIcon(for provider: StatusProviderIcon, size: CGFloat = 20) -> NSImage {
         let image = NSImage(size: NSSize(width: size, height: size))
         image.lockFocus()
@@ -3193,11 +3188,13 @@ private enum BrandIconImage {
     }
 
     private static func loadPNG(for provider: StatusProviderIcon) -> NSImage? {
-        let fileName = "\(provider.fileName).png"
+        let suffix = isDarkAppearance ? "-white" : ""
+        let resourceName = "\(provider.baseName)\(suffix)"
+        let fileName = "\(resourceName).png"
         let fileManager = FileManager.default
         let cwd = URL(fileURLWithPath: fileManager.currentDirectoryPath)
         let candidates: [URL?] = [
-            Bundle.main.url(forResource: provider.fileName, withExtension: "png"),
+            Bundle.main.url(forResource: resourceName, withExtension: "png"),
             Bundle.main.resourceURL?.appendingPathComponent(fileName),
             cwd.appendingPathComponent(fileName),
             cwd.appendingPathComponent("Resources").appendingPathComponent(fileName)
