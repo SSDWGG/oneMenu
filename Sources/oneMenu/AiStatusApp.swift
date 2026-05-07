@@ -65,6 +65,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     private let hardwareTemperaturesMenu = NSMenu(title: "温度传感器")
     private let hardwareFansMenu = NSMenu(title: "风扇转速")
     private let preventSleepMenuItem = NSMenuItem(title: "保持 Mac 活跃（防休眠）", action: #selector(toggleSleepPrevention(_:)), keyEquivalent: "")
+    private let autoStartMenuItem = NSMenuItem(title: "登录时自动启动", action: #selector(toggleAutoStart(_:)), keyEquivalent: "")
     private var emailConfigWindowController: EmailConfigWindowController?
     private var settingsWindowController: SettingsWindowController?
 
@@ -322,6 +323,10 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
 
         preventSleepMenuItem.target = self
         menu.addItem(preventSleepMenuItem)
+
+        autoStartMenuItem.state = AutoStartPreferences.isEnabled ? .on : .off
+        autoStartMenuItem.target = self
+        menu.addItem(autoStartMenuItem)
         menu.addItem(.separator())
 
         let openCodexItem = NSMenuItem(title: "打开 ~/.codex", action: #selector(openCodexFolder(_:)), keyEquivalent: "")
@@ -580,6 +585,15 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         refresh()
     }
 
+    @objc private func toggleAutoStart(_ sender: NSMenuItem) {
+        if AutoStartPreferences.isEnabled {
+            AutoStartPreferences.disable()
+        } else {
+            AutoStartPreferences.enable()
+        }
+        autoStartMenuItem.state = AutoStartPreferences.isEnabled ? .on : .off
+    }
+
     @objc private func openEmailConfig(_ sender: Any?) {
         if emailConfigWindowController == nil || emailConfigWindowController?.window == nil {
             emailConfigWindowController = EmailConfigWindowController()
@@ -820,6 +834,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         updateTargetTimeCountdownDisplay()
         updateSystemReminderDisplay()
         updateSleepStatusItem()
+        autoStartMenuItem.state = AutoStartPreferences.isEnabled ? .on : .off
         syncStatusBarItemsVisibility()
         updateErrorDisplay(gptError: gptSnapshot.errorMessage, claudeError: claudeSnapshot.errorMessage)
         refreshHoverWindowIfNeeded()
@@ -2198,9 +2213,13 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
                 }
             case .denied:
                 DispatchQueue.main.async {
-                    self.notificationErrorMessage = "没有通知权限，无法发送系统提醒测试"
+                    self.notificationErrorMessage = "通知权限已被拒绝。请到系统设置中为 oneMenu 开启通知权限。"
                     self.systemReminderRegistrationStatusText = "未授权通知"
                     self.refresh()
+                    // Open System Settings > Notifications
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") {
+                        NSWorkspace.shared.open(url)
+                    }
                 }
             @unknown default:
                 DispatchQueue.main.async {
@@ -2344,6 +2363,10 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     }
 
     private func sendAllWorkFinishedEmail(endedSessions: [TrackedSession]) {
+        // Don't send if email is disabled or not configured
+        guard case .configured = emailStatus else {
+            return
+        }
         allWorkEmailNotifier.send(endedSessions: endedSessions) { [weak self] errorMessage in
             if let errorMessage {
                 self?.emailStatus = .failed(errorMessage)
