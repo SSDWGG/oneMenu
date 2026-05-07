@@ -126,10 +126,14 @@ security add-generic-password \
 
 ## 落地页
 
-本地预览：
+[![Pages](https://img.shields.io/badge/GitHub%20Pages-ssdwgg.github.io%2FoneMenu-7ee0c3?logo=github)](https://ssdwgg.github.io/oneMenu/)
+
+宣传页托管在 GitHub Pages，拟态玻璃风格，支持鼠标跟随滚动交互。
+
+预览：
 
 ```bash
-python3 -m http.server 4173 --directory site
+python3 -m http.server 4173 --directory docs
 open http://127.0.0.1:4173/
 ```
 
@@ -160,7 +164,7 @@ ssh -i "$DEPLOY_SSH_KEY" -p "$DEPLOY_SSH_PORT" \
 
 rsync -avz --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r \
   -e "ssh -i '$DEPLOY_SSH_KEY' -p '$DEPLOY_SSH_PORT' -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes" \
-  site/ "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST:$DEPLOY_REMOTE_DIR"
+  docs/ "$DEPLOY_SSH_USER@$DEPLOY_SSH_HOST:$DEPLOY_REMOTE_DIR"
 ```
 
 ## 验证
@@ -205,7 +209,7 @@ shasum -a 256 -c oneMenu-0.1.2.dmg.sha256
 │   └── CodexStatusCore/
 ├── Tests/
 │   └── CodexStatusCoreTests/
-└── site/
+└── docs/
     ├── assets/
     ├── downloads/
     ├── index.html
