@@ -5,7 +5,7 @@ import IOKit.pwr_mgt
 import UserNotifications
 
 @main
-final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
+final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     private let gptMonitor = CodexStatusMonitor()
     private let claudeMonitor = ClaudeStatusMonitor()
     private let colorPreferences = StatusLightColorPreferences()
@@ -21,9 +21,9 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
     private let sleepPreventer = SleepPreventer()
     private let weatherService = WeatherForecastService()
     private let hardwareMonitor = HardwareStatusMonitor()
-    private let hardwareQueue = DispatchQueue(label: "AiStatus.hardwareMonitor", qos: .utility)
-    private let monitorQueue = DispatchQueue(label: "AiStatus.sessionMonitors", qos: .utility)
-    private let countdownQueue = DispatchQueue(label: "AiStatus.countdownTimer", qos: .userInteractive)
+    private let hardwareQueue = DispatchQueue(label: "oneMenu.hardwareMonitor", qos: .utility)
+    private let monitorQueue = DispatchQueue(label: "oneMenu.sessionMonitors", qos: .utility)
+    private let countdownQueue = DispatchQueue(label: "oneMenu.countdownTimer", qos: .userInteractive)
     private let allWorkEmailNotifier = AllWorkEmailNotifier()
     private let notificationCenter = UNUserNotificationCenter.current()
     private let statusItem = NSStatusBar.system.statusItem(withLength: 24)
@@ -94,7 +94,7 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     static func main() {
         let app = NSApplication.shared
-        let delegate = AiStatusApp()
+        let delegate = OneMenuApp()
         app.delegate = delegate
         app.setActivationPolicy(.accessory)
         app.run()
@@ -315,7 +315,13 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
         menu.addItem(.separator())
 
-        let quitItem = NSMenuItem(title: "退出 AiStatus", action: #selector(quit(_:)), keyEquivalent: "q")
+        let versionString = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
+        let buildString = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
+        let versionItem = NSMenuItem(title: "版本 \(versionString) (\(buildString))", action: nil, keyEquivalent: "")
+        versionItem.isEnabled = false
+        menu.addItem(versionItem)
+
+        let quitItem = NSMenuItem(title: "退出 oneMenu", action: #selector(quit(_:)), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
     }
@@ -1196,10 +1202,14 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
         if isReminderActive {
             let color = CountdownReminderColor.color(for: countdownPreferences.reminderColorID)
             button.layer?.backgroundColor = color.color.withAlphaComponent(0.82).cgColor
-            button.contentTintColor = color.foregroundColor
+            let font = button.font ?? NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+            button.attributedTitle = NSAttributedString(string: button.title, attributes: [
+                .font: font,
+                .foregroundColor: color.foregroundColor
+            ])
         } else {
             button.layer?.backgroundColor = NSColor.clear.cgColor
-            button.contentTintColor = nil
+            button.attributedTitle = NSAttributedString(string: "")
         }
     }
 
@@ -1291,9 +1301,11 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
             button.layer?.backgroundColor = NSColor.clear.cgColor
         }
 
-        button.attributedTitle = NSAttributedString(string: "")
-        button.title = title
-        button.contentTintColor = textColor.color ?? background.foregroundColor
+        let foregroundColor = textColor.color ?? background.foregroundColor
+        button.attributedTitle = NSAttributedString(string: title, attributes: [
+            .font: font,
+            .foregroundColor: foregroundColor as Any
+        ])
     }
 
     private func targetTimeCountdownStatusTitle(for snapshot: TargetTimeCountdownSnapshot) -> String {
@@ -2062,7 +2074,7 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
     private func addImmediateSystemReminderTestNotification() {
         let content = UNMutableNotificationContent()
-        content.title = "AiStatus 测试提醒"
+        content.title = "oneMenu 测试提醒"
         content.body = "如果看到这条通知，说明系统提醒权限和通知展示正常。"
         content.sound = .default
 
@@ -2488,7 +2500,7 @@ private enum EmailStatus: Equatable {
 }
 
 private final class AllWorkEmailNotifier {
-    private let queue = DispatchQueue(label: "AiStatus.emailNotifier")
+    private let queue = DispatchQueue(label: "oneMenu.emailNotifier")
 
     func send(
         endedSessions: [TrackedSession],
@@ -2604,7 +2616,7 @@ private final class AllWorkEmailNotifier {
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                       <tr>
                         <td style="font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7;padding-bottom:24px">
-                          AiStatus &#x68C0;&#x6D4B;&#x5230; GPT / Claude &#x5747;&#x5DF2;&#x7A7A;&#x95F2;&#xFF0C;<strong>&#x6240;&#x6709; AI &#x5DE5;&#x4F5C;&#x5DF2;&#x7ECF;&#x7ED3;&#x675F;</strong>&#x3002;
+                          oneMenu &#x68C0;&#x6D4B;&#x5230; GPT / Claude &#x5747;&#x5DF2;&#x7A7A;&#x95F2;&#xFF0C;<strong>&#x6240;&#x6709; AI &#x5DE5;&#x4F5C;&#x5DF2;&#x7ECF;&#x7ED3;&#x675F;</strong>&#x3002;
                         </td>
                       </tr>
 
@@ -2627,7 +2639,7 @@ private final class AllWorkEmailNotifier {
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                       <tr>
                         <td style="font-size:12px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-                          AiStatus
+                          oneMenu
                         </td>
                         <td style="font-size:12px;color:#9ca3af;text-align:right;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
                           \(escapedHTML(timeStr))
@@ -2643,7 +2655,7 @@ private final class AllWorkEmailNotifier {
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="520">
                 <tr>
                   <td style="padding:16px 0;text-align:center;font-size:11px;color:#c0c0c0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-                    Sent by AiStatus &#xB7; macOS Menu Bar Monitor
+                    Sent by oneMenu &#xB7; macOS Menu Bar Monitor
                   </td>
                 </tr>
               </table>
@@ -2927,7 +2939,7 @@ private final class SleepPreventer {
 
         let systemSleepResult = createAssertion(
             type: kIOPMAssertionTypePreventUserIdleSystemSleep as CFString,
-            name: "AiStatus Prevent Idle System Sleep",
+            name: "oneMenu Prevent Idle System Sleep",
             assertionID: &systemSleepAssertionID
         )
         guard systemSleepResult == kIOReturnSuccess else {
@@ -2937,7 +2949,7 @@ private final class SleepPreventer {
 
         let displaySleepResult = createAssertion(
             type: kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
-            name: "AiStatus Prevent Idle Display Sleep",
+            name: "oneMenu Prevent Idle Display Sleep",
             assertionID: &displaySleepAssertionID
         )
         guard displaySleepResult == kIOReturnSuccess else {

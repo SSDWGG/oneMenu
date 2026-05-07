@@ -12,7 +12,7 @@ final class EmailNotificationConfigTests: XCTestCase {
           "password": "file-password",
           "from": "sender@example.com",
           "to": "recipient@example.com",
-          "subject": "AiStatus finished"
+          "subject": "oneMenu finished"
         }
         """.write(to: configURL, atomically: true, encoding: .utf8)
 
@@ -29,7 +29,7 @@ final class EmailNotificationConfigTests: XCTestCase {
         XCTAssertEqual(config?.password, "environment-password")
         XCTAssertEqual(config?.from, "sender@example.com")
         XCTAssertEqual(config?.to, ["recipient@example.com"])
-        XCTAssertEqual(config?.subject, "AiStatus finished")
+        XCTAssertEqual(config?.subject, "oneMenu finished")
         XCTAssertEqual(config?.requiresTLS, true)
         XCTAssertEqual(config?.curlPath, "/usr/bin/curl")
     }

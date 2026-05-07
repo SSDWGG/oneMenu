@@ -19,7 +19,7 @@ public struct EmailNotificationConfig: Equatable {
         passwordCommand: String? = nil,
         from: String,
         to: [String],
-        subject: String = "AiStatus: all AI work finished",
+        subject: String = "oneMenu: all AI work finished",
         requiresTLS: Bool = true,
         curlPath: String = "/usr/bin/curl",
         timeoutSeconds: TimeInterval = 60
@@ -124,7 +124,7 @@ private struct RawEmailNotificationConfig: Decodable {
             passwordCommand: passwordCommand,
             from: from,
             to: to?.values ?? [],
-            subject: subject ?? "AiStatus: all AI work finished",
+            subject: subject ?? "oneMenu: all AI work finished",
             requiresTLS: requiresTLS ?? true,
             curlPath: curlPath ?? "/usr/bin/curl",
             timeoutSeconds: timeoutSeconds ?? 60

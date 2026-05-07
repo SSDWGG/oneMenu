@@ -49,7 +49,7 @@ final class SystemReminderTests: XCTestCase {
         preferences.title = "   "
         preferences.message = "\n"
 
-        XCTAssertEqual(preferences.title, "AiStatus 提醒")
+        XCTAssertEqual(preferences.title, "oneMenu 提醒")
         XCTAssertEqual(preferences.message, "到了预定提醒时间。")
     }
 

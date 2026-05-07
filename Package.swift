@@ -3,18 +3,19 @@
 import PackageDescription
 
 let package = Package(
-    name: "AiStatus",
+    name: "oneMenu",
     platforms: [
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "AiStatus", targets: ["AiStatus"])
+        .executable(name: "oneMenu", targets: ["oneMenu"])
     ],
     targets: [
         .target(name: "CodexStatusCore"),
         .executableTarget(
-            name: "AiStatus",
-            dependencies: ["CodexStatusCore"]
+            name: "oneMenu",
+            dependencies: ["CodexStatusCore"],
+            resources: [.process("Resources")]
         ),
         .testTarget(
             name: "CodexStatusCoreTests",

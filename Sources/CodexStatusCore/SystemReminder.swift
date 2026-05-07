@@ -67,8 +67,8 @@ public final class SystemReminderPreferences {
     }
 
     public var title: String {
-        get { Self.sanitizedText(defaults.string(forKey: Key.title), fallback: "AiStatus 提醒", maxLength: 80) }
-        set { defaults.set(Self.sanitizedText(newValue, fallback: "AiStatus 提醒", maxLength: 80), forKey: Key.title) }
+        get { Self.sanitizedText(defaults.string(forKey: Key.title), fallback: "oneMenu 提醒", maxLength: 80) }
+        set { defaults.set(Self.sanitizedText(newValue, fallback: "oneMenu 提醒", maxLength: 80), forKey: Key.title) }
     }
 
     public var message: String {

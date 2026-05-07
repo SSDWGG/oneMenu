@@ -243,7 +243,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "AiStatus 设置"
+        window.title = "oneMenu 设置"
         window.minSize = NSSize(width: 790, height: 500)
         window.center()
 
@@ -316,7 +316,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         sidebarStack.spacing = 3
         sidebarStack.edgeInsets = NSEdgeInsets(top: 16, left: Layout.sidebarInset, bottom: 10, right: Layout.sidebarInset)
 
-        let titleLabel = NSTextField(labelWithString: "AiStatus")
+        let titleLabel = NSTextField(labelWithString: "oneMenu")
         titleLabel.alignment = .left
         titleLabel.font = NSFont.systemFont(ofSize: 18, weight: .semibold)
         titleLabel.widthAnchor.constraint(equalToConstant: Layout.sidebarWidth - Layout.sidebarInset * 2).isActive = true
@@ -582,7 +582,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         buttons.addArrangedSubview(NSView())
         stack.addArrangedSubview(buttons)
 
-        let note = secondaryLabel("倒计时只保存在本次 App 运行中；重启 AiStatus 后会回到未开始状态，但时长设置会保留。")
+        let note = secondaryLabel("倒计时只保存在本次 App 运行中；重启 oneMenu 后会回到未开始状态，但时长设置会保留。")
         note.maximumNumberOfLines = 0
         stack.addArrangedSubview(note)
         updateCountdownButtons()
@@ -662,7 +662,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         let enabledCheckbox = NSButton(checkboxWithTitle: "", target: self, action: #selector(systemReminderEnabledToggled(_:)))
         enabledCheckbox.state = systemReminderPreferences.isEnabled ? .on : .off
         systemReminderEnabledCheckbox = enabledCheckbox
-        stack.addArrangedSubview(settingRow(title: "启用提醒", detail: "开启后 AiStatus 会向 macOS 通知中心注册这个提醒。", control: enabledCheckbox))
+        stack.addArrangedSubview(settingRow(title: "启用提醒", detail: "开启后 oneMenu 会向 macOS 通知中心注册这个提醒。", control: enabledCheckbox))
 
         stack.addArrangedSubview(
             settingRow(
@@ -714,7 +714,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         buttons.addArrangedSubview(NSView())
         stack.addArrangedSubview(buttons)
 
-        let note = secondaryLabel("首次使用需要允许 AiStatus 发送通知。若测试提醒也没有弹出，请检查系统设置里的 AiStatus 通知权限和专注模式。")
+        let note = secondaryLabel("首次使用需要允许 oneMenu 发送通知。若测试提醒也没有弹出，请检查系统设置里的 oneMenu 通知权限和专注模式。")
         note.maximumNumberOfLines = 0
         stack.addArrangedSubview(note)
         return scrollView(for: stack)
@@ -736,7 +736,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
 
     private func makeAppearancePage() -> NSView {
         let stack = basePageStack()
-        addHeader(to: stack, title: "外观", subtitle: "切换 AiStatus 设置窗、悬浮窗和辅助窗口的浅色或深色外观。")
+        addHeader(to: stack, title: "外观", subtitle: "切换 oneMenu 设置窗、悬浮窗和辅助窗口的浅色或深色外观。")
 
         stack.addArrangedSubview(
             settingRow(
@@ -750,7 +750,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         appearanceStatusLabel?.maximumNumberOfLines = 0
         addInfoPanel(to: stack, title: "当前外观设置", content: appearanceStatusLabel!)
 
-        let note = secondaryLabel("选择“跟随系统”时，AiStatus 不强制外观，会随 macOS 系统设置自动切换。")
+        let note = secondaryLabel("选择“跟随系统”时，oneMenu 不强制外观，会随 macOS 系统设置自动切换。")
         note.maximumNumberOfLines = 0
         stack.addArrangedSubview(note)
         return scrollView(for: stack)
@@ -1402,7 +1402,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
            statusBarDisplayPreferences.isVisible(module),
            StatusBarModule.allCases.filter({ statusBarDisplayPreferences.isVisible($0) }).count <= 1 {
             sender.state = .on
-            showAlert(message: "至少保留一个状态栏项目", detail: "否则 AiStatus 会失去菜单栏入口。")
+            showAlert(message: "至少保留一个状态栏项目", detail: "否则 oneMenu 会失去菜单栏入口。")
             return
         }
 
@@ -1812,7 +1812,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
             }
             return "更新失败：\(message)"
         case .permissionDenied:
-            return "定位权限未开启。请在系统设置中允许 AiStatus 使用定位。"
+            return "定位权限未开启。请在系统设置中允许 oneMenu 使用定位。"
         case let .locationUnavailable(message):
             return message
         }

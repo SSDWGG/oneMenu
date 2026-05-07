@@ -47,7 +47,7 @@ final class EmailConfigWindowController: NSWindowController {
         passwordCommandField.placeholderString = "security find-generic-password -w -s aistatus-smtp"
         fromField.placeholderString = "sender@example.com"
         toField.placeholderString = "recipient@example.com"
-        subjectField.placeholderString = "AiStatus: all AI work finished"
+        subjectField.placeholderString = "oneMenu: all AI work finished"
 
         passwordPlainField.isHidden = true
 
@@ -288,7 +288,7 @@ final class EmailConfigWindowController: NSWindowController {
             "smtpURL": smtpURL,
             "from": from,
             "to": to,
-            "subject": subject.isEmpty ? "AiStatus: all AI work finished" : subject,
+            "subject": subject.isEmpty ? "oneMenu: all AI work finished" : subject,
             "requiresTLS": tlsCheckbox.state == .on
         ]
 

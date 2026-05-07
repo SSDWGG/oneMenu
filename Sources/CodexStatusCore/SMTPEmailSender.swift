@@ -80,7 +80,7 @@ public final class SMTPEmailSender {
 
     public func send(message: EmailMessage) throws {
         let tempDirectory = fileManager.temporaryDirectory
-            .appendingPathComponent("AiStatusEmail-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("oneMenuEmail-\(UUID().uuidString)", isDirectory: true)
         try fileManager.createDirectory(
             at: tempDirectory,
             withIntermediateDirectories: true,
