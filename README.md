@@ -122,8 +122,8 @@ Scripts/build-dmg.sh
 
 脚本会生成：
 
-- `dist/AiStatus-0.1.0.dmg`
-- `dist/AiStatus-0.1.0.dmg.sha256`
+- `dist/AiStatus-0.1.1.dmg`
+- `dist/AiStatus-0.1.1.dmg.sha256`
 
 DMG 内包含 `Install Guide.html`。如果用户首次打开时看到“Apple 无法验证是否包含可能危害 Mac 的恶意软件”，安装说明会引导用户进入“系统设置 → 隐私与安全性 → 仍要打开”。
 
@@ -167,7 +167,7 @@ http://aistatus.ssdwgg.site/
 下载地址：
 
 ```text
-http://aistatus.ssdwgg.site/downloads/AiStatus-0.1.0.dmg
+http://aistatus.ssdwgg.site/downloads/AiStatus-0.1.1.dmg
 ```
 
 > 注意：如果要正式公开推广，建议为 `aistatus.ssdwgg.site` 配置匹配的 HTTPS 证书，并使用 Developer ID 签名/公证后的 DMG。
@@ -223,7 +223,7 @@ swift test
 ```bash
 Scripts/build-dmg.sh
 cd site/downloads
-shasum -a 256 -c AiStatus-0.1.0.dmg.sha256
+shasum -a 256 -c AiStatus-0.1.1.dmg.sha256
 ```
 
 检查落地页本地资源引用：

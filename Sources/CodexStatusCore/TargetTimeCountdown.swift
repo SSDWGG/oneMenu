@@ -61,6 +61,7 @@ public final class TargetTimeCountdownPreferences {
         static let backgroundColorID = "targetTimeCountdown.backgroundColorID"
         static let textWeight = "targetTimeCountdown.textWeight"
         static let textColorID = "targetTimeCountdown.textColorID"
+        static let showsIcon = "targetTimeCountdown.showsIcon"
     }
 
     private let defaults: UserDefaults
@@ -70,7 +71,12 @@ public final class TargetTimeCountdownPreferences {
     }
 
     public var title: String {
-        get { Self.sanitizedTitle(defaults.string(forKey: Key.title)) }
+        get {
+            guard defaults.object(forKey: Key.title) != nil else {
+                return "下班"
+            }
+            return Self.sanitizedTitle(defaults.string(forKey: Key.title))
+        }
         set { defaults.set(Self.sanitizedTitle(newValue), forKey: Key.title) }
     }
 
@@ -130,6 +136,16 @@ public final class TargetTimeCountdownPreferences {
     public var textColorID: String {
         get { defaults.string(forKey: Key.textColorID) ?? "automatic" }
         set { defaults.set(newValue, forKey: Key.textColorID) }
+    }
+
+    public var showsIcon: Bool {
+        get {
+            if defaults.object(forKey: Key.showsIcon) == nil {
+                return true
+            }
+            return defaults.bool(forKey: Key.showsIcon)
+        }
+        set { defaults.set(newValue, forKey: Key.showsIcon) }
     }
 
     public func snapshot(now: Date = Date(), calendar: Calendar = .current) -> TargetTimeCountdownSnapshot {
@@ -192,9 +208,6 @@ public final class TargetTimeCountdownPreferences {
 
     private static func sanitizedTitle(_ title: String?) -> String {
         let trimmed = (title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return "下班"
-        }
         return String(trimmed.prefix(24))
     }
 }

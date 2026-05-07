@@ -69,14 +69,26 @@ final class TargetTimeCountdownTests: XCTestCase {
         XCTAssertTrue(snapshot.isPastTodayTarget)
     }
 
+    func testPreferencesDefaultsTitleButAllowsEmptyTitle() {
+        let preferences = makePreferences()
+
+        XCTAssertEqual(preferences.title, "下班")
+
+        preferences.title = "   "
+
+        XCTAssertEqual(preferences.title, "")
+        XCTAssertEqual(preferences.snapshot().title, "")
+    }
+
     func testPreferencesClampTimeAndSanitizeTitle() {
         let preferences = makePreferences()
 
-        preferences.title = "   "
+        preferences.title = "   123456789012345678901234567890   "
         preferences.targetHour = 42
         preferences.targetMinute = -9
 
-        XCTAssertEqual(preferences.title, "下班")
+        XCTAssertEqual(preferences.title.count, 24)
+        XCTAssertEqual(preferences.title, "123456789012345678901234")
         XCTAssertEqual(preferences.targetHour, 23)
         XCTAssertEqual(preferences.targetMinute, 0)
     }
@@ -102,6 +114,16 @@ final class TargetTimeCountdownTests: XCTestCase {
 
         XCTAssertEqual(preferences.textWeight, .bold)
         XCTAssertEqual(preferences.textColorID, "white")
+    }
+
+    func testIconPreferenceDefaultsToVisibleAndPersists() {
+        let preferences = makePreferences()
+
+        XCTAssertTrue(preferences.showsIcon)
+
+        preferences.showsIcon = false
+
+        XCTAssertFalse(preferences.showsIcon)
     }
 
     private func makePreferences() -> TargetTimeCountdownPreferences {

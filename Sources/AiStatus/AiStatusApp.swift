@@ -1070,11 +1070,12 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
             subtitle: targetTimeCountdownSubtitle(for: snapshot),
             symbolName: targetTimeCountdownSymbolName(for: snapshot),
             rows: [
-                StatusHoverRow(label: "目标", value: snapshot.title),
+                StatusHoverRow(label: "目标", value: targetTimeCountdownDisplayTitle(for: snapshot)),
                 StatusHoverRow(label: "目标时间", value: targetTimeCountdownTimeText(hour: snapshot.targetHour, minute: snapshot.targetMinute)),
                 StatusHoverRow(label: "剩余分钟", value: "\(snapshot.minutesRemaining) 分钟"),
                 StatusHoverRow(label: "过点处理", value: snapshot.pastBehavior.title),
                 StatusHoverRow(label: "背景色", value: background.title),
+                StatusHoverRow(label: "图标", value: targetTimeCountdownPreferences.showsIcon ? "显示" : "隐藏"),
                 StatusHoverRow(label: "状态", value: snapshot.isPastTodayTarget ? "今天已过目标时间" : "尚未到目标时间")
             ]
         )
@@ -1252,13 +1253,19 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
 
         let snapshot = targetTimeCountdownPreferences.snapshot()
         let tooltip = "目标倒计：\(targetTimeCountdownSubtitle(for: snapshot))"
-        let title = "\(snapshot.title) \(snapshot.minutesRemaining)分"
+        let title = targetTimeCountdownStatusTitle(for: snapshot)
         button.title = title
-        button.image = statusSymbol(
-            named: targetTimeCountdownSymbolName(for: snapshot),
-            fallback: "clock.fill",
-            description: tooltip
-        )
+        if targetTimeCountdownPreferences.showsIcon {
+            button.imagePosition = .imageLeading
+            button.image = statusSymbol(
+                named: targetTimeCountdownSymbolName(for: snapshot),
+                fallback: "clock.fill",
+                description: tooltip
+            )
+        } else {
+            button.imagePosition = .noImage
+            button.image = nil
+        }
         button.toolTip = tooltip
         button.setAccessibilityLabel(tooltip)
         applyTargetTimeCountdownStyle(to: button, title: title)
@@ -1284,28 +1291,30 @@ final class AiStatusApp: NSObject, NSApplicationDelegate, UNUserNotificationCent
             button.layer?.backgroundColor = NSColor.clear.cgColor
         }
 
-        if let color = textColor.color ?? background.foregroundColor {
-            button.attributedTitle = NSAttributedString(
-                string: title,
-                attributes: [
-                    .font: font,
-                    .foregroundColor: color
-                ]
-            )
-            button.contentTintColor = color
-        } else {
-            button.attributedTitle = NSAttributedString(string: "")
-            button.title = title
-            button.contentTintColor = nil
+        button.attributedTitle = NSAttributedString(string: "")
+        button.title = title
+        button.contentTintColor = textColor.color ?? background.foregroundColor
+    }
+
+    private func targetTimeCountdownStatusTitle(for snapshot: TargetTimeCountdownSnapshot) -> String {
+        let remaining = "\(snapshot.minutesRemaining)分"
+        guard !snapshot.title.isEmpty else {
+            return remaining
         }
+        return "\(snapshot.title) \(remaining)"
+    }
+
+    private func targetTimeCountdownDisplayTitle(for snapshot: TargetTimeCountdownSnapshot) -> String {
+        snapshot.title.isEmpty ? "未设置名称" : snapshot.title
     }
 
     private func targetTimeCountdownSubtitle(for snapshot: TargetTimeCountdownSnapshot) -> String {
         let target = targetTimeCountdownTimeText(hour: snapshot.targetHour, minute: snapshot.targetMinute)
+        let targetPrefix = snapshot.title.isEmpty ? target : "\(snapshot.title) \(target)"
         if snapshot.isPastTodayTarget, snapshot.pastBehavior == .showZero {
-            return "\(snapshot.title) \(target) 已过，显示 0 分钟"
+            return "\(targetPrefix) 已过，显示 0 分钟"
         }
-        return "距离 \(snapshot.title) \(target) 还有 \(snapshot.minutesRemaining) 分钟"
+        return "距离 \(targetPrefix) 还有 \(snapshot.minutesRemaining) 分钟"
     }
 
     private func targetTimeCountdownSymbolName(for snapshot: TargetTimeCountdownSnapshot) -> String {
@@ -3083,31 +3092,30 @@ private enum StatusProviderIcon {
     case gpt
     case claude
 
-    var viewBox: CGRect {
+    var fileName: String {
         switch self {
         case .gpt:
-            return CGRect(x: 0, y: 0, width: 20, height: 20)
+            return "openai"
         case .claude:
-            return CGRect(x: 0, y: 0, width: 24, height: 24)
+            return "claude-color"
         }
     }
 
-    var markInset: CGFloat {
+    var fallbackTitle: String {
         switch self {
         case .gpt:
-            return 4.1
+            return "GPT"
         case .claude:
-            return 3.8
+            return "C"
         }
     }
 
-    // Brand path sources: OpenAI brand mark via Wikimedia Commons, Claude mark via Simple Icons (CC0).
-    var pathData: String {
+    var currentColor: NSColor {
         switch self {
         case .gpt:
-            return "M11.248 18.25q-.825 0-1.568-.314a4.3 4.3 0 0 1-1.32-.874 4 4 0 0 1-1.304.214 4 4 0 0 1-2.046-.544 4.27 4.27 0 0 1-1.518-1.485 4 4 0 0 1-.56-2.095q0-.48.131-1.04A4.4 4.4 0 0 1 2.04 10.71a4.07 4.07 0 0 1 .017-3.4 4.2 4.2 0 0 1 1.056-1.418 3.8 3.8 0 0 1 1.6-.842 3.9 3.9 0 0 1 .76-1.683q.593-.759 1.451-1.188a4.04 4.04 0 0 1 1.832-.429q.825 0 1.567.313.742.314 1.32.875a4 4 0 0 1 1.304-.215q1.106 0 2.046.545a4.14 4.14 0 0 1 1.501 1.485q.578.941.578 2.095 0 .48-.132 1.04.66.61 1.023 1.419.363.792.363 1.666 0 .892-.38 1.717a4.3 4.3 0 0 1-1.072 1.435 3.8 3.8 0 0 1-1.584.825 3.8 3.8 0 0 1-.775 1.683 4.06 4.06 0 0 1-1.436 1.188 4.04 4.04 0 0 1-1.832.429m-4.076-2.062q.825 0 1.435-.347l3.103-1.782a.36.36 0 0 0 .164-.313v-1.42L7.881 14.62a.67.67 0 0 1-.726 0l-3.118-1.798a.5.5 0 0 1-.017.115v.198q0 .841.396 1.551.413.693 1.139 1.089a3.2 3.2 0 0 0 1.617.412m.165-2.69a.4.4 0 0 0 .181.05q.083 0 .165-.05l1.238-.71-3.977-2.31a.7.7 0 0 1-.363-.643v-3.58q-.825.362-1.32 1.122a2.9 2.9 0 0 0-.495 1.65q0 .809.413 1.55.412.743 1.072 1.123zm3.91 3.663q.875 0 1.585-.396a2.96 2.96 0 0 0 1.534-2.64v-3.564a.32.32 0 0 0-.165-.297l-1.254-.726v4.604a.7.7 0 0 1-.363.643l-3.119 1.799a3 3 0 0 0 1.783.577m.627-6.039V8.878L10.01 7.822 8.129 8.878v2.244l1.881 1.056zM7.057 5.859a.7.7 0 0 1 .363-.644l3.119-1.798a3 3 0 0 0-1.782-.578q-.874 0-1.584.396A2.96 2.96 0 0 0 6.05 4.324a3.07 3.07 0 0 0-.396 1.551v3.547q0 .199.165.314l1.237.726zm8.383 7.887q.825-.364 1.303-1.123.495-.758.495-1.65a3.15 3.15 0 0 0-.412-1.55q-.413-.743-1.073-1.123l-3.086-1.782q-.099-.065-.181-.049a.3.3 0 0 0-.165.05l-1.238.692 3.993 2.327a.6.6 0 0 1 .264.264.64.64 0 0 1 .1.363zm-3.317-8.382a.63.63 0 0 1 .726 0l3.135 1.831v-.297q0-.792-.396-1.501a2.86 2.86 0 0 0-1.105-1.155q-.71-.43-1.65-.43-.825 0-1.436.347L8.294 5.941a.36.36 0 0 0-.165.314v1.418z"
+            return .labelColor
         case .claude:
-            return "m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"
+            return .labelColor
         }
     }
 }
@@ -3123,34 +3131,221 @@ private enum StatusDotImage {
         bounds.fill()
 
         if isActive {
-            color.withAlphaComponent(0.24).setFill()
-            NSBezierPath(ovalIn: bounds.insetBy(dx: 0.5, dy: 0.5)).fill()
+            color.withAlphaComponent(0.22).setFill()
+            NSBezierPath(ovalIn: bounds.insetBy(dx: 0.4, dy: 0.4)).fill()
         }
 
-        let badgeRect = NSRect(x: 1.8, y: 1.8, width: 14.4, height: 14.4)
-        color.withAlphaComponent(isActive ? 1 : 0.78).setFill()
-        NSBezierPath(ovalIn: badgeRect).fill()
-
-        NSColor.white.withAlphaComponent(0.20).setStroke()
-        let badgeBorder = NSBezierPath(ovalIn: badgeRect.insetBy(dx: 0.25, dy: 0.25))
-        badgeBorder.lineWidth = 0.5
-        badgeBorder.stroke()
-
-        drawProviderGlyph(provider)
+        drawProviderIcon(provider, isActive: isActive)
+        drawStatusMarker(color: color, isActive: isActive)
 
         image.unlockFocus()
         image.isTemplate = false
         return image
     }
 
-    private static func drawProviderGlyph(_ provider: StatusProviderIcon) {
-        NSColor.white.withAlphaComponent(0.92).setFill()
-        guard let basePath = SVGPathParser.path(from: provider.pathData)?.copy() as? NSBezierPath else {
+    private static func drawProviderIcon(_ provider: StatusProviderIcon, isActive: Bool) {
+        guard let icon = SVGIconLoader.icon(for: provider) else {
+            drawFallbackIcon(provider, isActive: isActive)
             return
         }
 
-        let markRect = NSRect(x: 0, y: 0, width: 18, height: 18).insetBy(dx: provider.markInset, dy: provider.markInset)
-        SVGPathParser.draw(basePath, viewBox: provider.viewBox, in: markRect)
+        let alpha: CGFloat = isActive ? 1 : 0.72
+        let iconRect = NSRect(x: 2.3, y: 2.8, width: 13.4, height: 13.4)
+        for shape in icon.shapes {
+            guard let path = SVGPathParser.path(from: shape.pathData)?.copy() as? NSBezierPath else {
+                continue
+            }
+            let fillColor = shape.fillColor ?? (shape.usesCurrentColor ? provider.currentColor : icon.defaultFillColor)
+            fillColor.withAlphaComponent(alpha).setFill()
+            SVGPathParser.draw(path, viewBox: icon.viewBox, in: iconRect)
+        }
+    }
+
+    private static func drawFallbackIcon(_ provider: StatusProviderIcon, isActive: Bool) {
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+        let fontSize: CGFloat = provider == .gpt ? 5.1 : 8.4
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: fontSize, weight: .bold),
+            .foregroundColor: NSColor.labelColor.withAlphaComponent(isActive ? 1 : 0.72),
+            .paragraphStyle: paragraphStyle
+        ]
+        provider.fallbackTitle.draw(
+            in: NSRect(x: 1.6, y: 5.8, width: 14.8, height: 7),
+            withAttributes: attributes
+        )
+    }
+
+    private static func drawStatusMarker(color: NSColor, isActive: Bool) {
+        let markerSize: CGFloat = isActive ? 5.4 : 4.6
+        let markerRect = NSRect(x: 11.7, y: 1.4, width: markerSize, height: markerSize)
+        NSColor.windowBackgroundColor.withAlphaComponent(0.96).setFill()
+        NSBezierPath(ovalIn: markerRect.insetBy(dx: -0.9, dy: -0.9)).fill()
+        color.withAlphaComponent(isActive ? 1 : 0.74).setFill()
+        NSBezierPath(ovalIn: markerRect).fill()
+    }
+}
+
+private struct SVGIcon {
+    let viewBox: CGRect
+    let defaultFillColor: NSColor
+    let shapes: [SVGIconShape]
+}
+
+private struct SVGIconShape {
+    let pathData: String
+    let fillColor: NSColor?
+    let usesCurrentColor: Bool
+}
+
+private enum SVGIconLoader {
+    private static var cache: [StatusProviderIcon: SVGIcon] = [:]
+    private static let lock = NSLock()
+
+    static func icon(for provider: StatusProviderIcon) -> SVGIcon? {
+        lock.lock()
+        if let icon = cache[provider] {
+            lock.unlock()
+            return icon
+        }
+        lock.unlock()
+
+        guard let url = iconURL(for: provider),
+              let data = try? String(contentsOf: url, encoding: .utf8),
+              let icon = parse(data, currentColor: provider.currentColor)
+        else {
+            return nil
+        }
+
+        lock.lock()
+        cache[provider] = icon
+        lock.unlock()
+        return icon
+    }
+
+    private static func iconURL(for provider: StatusProviderIcon) -> URL? {
+        let resourceName = provider.fileName
+        let fileName = "\(resourceName).svg"
+        let fileManager = FileManager.default
+        let cwd = URL(fileURLWithPath: fileManager.currentDirectoryPath)
+        let candidates: [URL?] = [
+            Bundle.main.url(forResource: resourceName, withExtension: "svg"),
+            Bundle.main.resourceURL?.appendingPathComponent(fileName),
+            cwd.appendingPathComponent(fileName),
+            cwd.appendingPathComponent("Resources").appendingPathComponent(fileName),
+            Bundle.main.executableURL?.deletingLastPathComponent().appendingPathComponent(fileName),
+            Bundle.main.executableURL?.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent(fileName)
+        ]
+
+        return candidates.compactMap { $0 }.first { fileManager.fileExists(atPath: $0.path) }
+    }
+
+    private static func parse(_ svg: String, currentColor: NSColor) -> SVGIcon? {
+        guard let viewBox = attribute("viewBox", in: svg).flatMap(parseViewBox) else {
+            return nil
+        }
+
+        let rootFill = attribute("fill", in: svg).flatMap { fillColor($0, currentColor: currentColor) }
+        let rootUsesCurrentColor = attribute("fill", in: svg) == "currentColor"
+        let pathTags = matches(pattern: #"<path\b[^>]*>"#, in: svg)
+        let shapes = pathTags.compactMap { tag -> SVGIconShape? in
+            guard let pathData = attribute("d", in: tag) else {
+                return nil
+            }
+            let fillValue = attribute("fill", in: tag)
+            if fillValue == "none" {
+                return nil
+            }
+            return SVGIconShape(
+                pathData: pathData,
+                fillColor: fillValue.flatMap { fillColor($0, currentColor: currentColor) } ?? rootFill,
+                usesCurrentColor: fillValue == "currentColor" || (fillValue == nil && rootUsesCurrentColor)
+            )
+        }
+
+        guard !shapes.isEmpty else {
+            return nil
+        }
+        return SVGIcon(viewBox: viewBox, defaultFillColor: rootFill ?? currentColor, shapes: shapes)
+    }
+
+    private static func parseViewBox(_ value: String) -> CGRect? {
+        let values = value
+            .split { $0 == " " || $0 == "," || $0 == "\n" || $0 == "\t" }
+            .compactMap { Double($0) }
+        guard values.count == 4 else {
+            return nil
+        }
+        return CGRect(x: values[0], y: values[1], width: values[2], height: values[3])
+    }
+
+    private static func attribute(_ name: String, in text: String) -> String? {
+        let escapedName = NSRegularExpression.escapedPattern(for: name)
+        let pattern = #"\b\#(escapedName)\s*=\s*["']([^"']+)["']"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+              let range = Range(match.range(at: 1), in: text)
+        else {
+            return nil
+        }
+        return String(text[range])
+    }
+
+    private static func matches(pattern: String, in text: String) -> [String] {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return []
+        }
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.matches(in: text, range: range).compactMap { match in
+            Range(match.range, in: text).map { String(text[$0]) }
+        }
+    }
+
+    private static func fillColor(_ value: String, currentColor: NSColor) -> NSColor? {
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if normalized == "currentColor" {
+            return currentColor
+        }
+        if normalized == "none" {
+            return nil
+        }
+        if normalized.hasPrefix("#") {
+            return color(hex: String(normalized.dropFirst()))
+        }
+
+        switch normalized.lowercased() {
+        case "black":
+            return .black
+        case "white":
+            return .white
+        default:
+            return nil
+        }
+    }
+
+    private static func color(hex: String) -> NSColor? {
+        let scanner = Scanner(string: hex)
+        var value: UInt64 = 0
+        guard scanner.scanHexInt64(&value) else {
+            return nil
+        }
+
+        let red: CGFloat
+        let green: CGFloat
+        let blue: CGFloat
+        switch hex.count {
+        case 3:
+            red = CGFloat((value >> 8) & 0xF) / 15
+            green = CGFloat((value >> 4) & 0xF) / 15
+            blue = CGFloat(value & 0xF) / 15
+        case 6:
+            red = CGFloat((value >> 16) & 0xFF) / 255
+            green = CGFloat((value >> 8) & 0xFF) / 255
+            blue = CGFloat(value & 0xFF) / 255
+        default:
+            return nil
+        }
+        return NSColor(calibratedRed: red, green: green, blue: blue, alpha: 1)
     }
 }
 

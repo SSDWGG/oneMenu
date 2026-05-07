@@ -157,6 +157,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
     private var targetTimeCountdownBackgroundColorPopup: NSPopUpButton?
     private var targetTimeCountdownTextWeightPopup: NSPopUpButton?
     private var targetTimeCountdownTextColorPopup: NSPopUpButton?
+    private var targetTimeCountdownIconCheckbox: NSButton?
     private var systemReminderStatusLabel: NSTextField?
     private var systemReminderEnabledCheckbox: NSButton?
     private var systemReminderModePopup: NSPopUpButton?
@@ -596,8 +597,15 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         stack.addArrangedSubview(
             settingRow(
                 title: "目标名称",
-                detail: "显示在状态栏里的名称，例如下班、会议、收盘。",
+                detail: "显示在状态栏里的名称，例如下班、会议、收盘；留空时只显示剩余分钟。",
                 control: targetTimeCountdownTitleControl()
+            )
+        )
+        stack.addArrangedSubview(
+            settingRow(
+                title: "状态栏图标",
+                detail: "关闭后目标倒计在顶部状态栏只显示文字，不显示时钟图标。",
+                control: targetTimeCountdownIconControl()
             )
         )
         stack.addArrangedSubview(
@@ -1026,6 +1034,13 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         return field
     }
 
+    private func targetTimeCountdownIconControl() -> NSView {
+        let checkbox = NSButton(checkboxWithTitle: "", target: self, action: #selector(targetTimeCountdownIconToggled(_:)))
+        checkbox.state = targetTimeCountdownPreferences.showsIcon ? .on : .off
+        targetTimeCountdownIconCheckbox = checkbox
+        return checkbox
+    }
+
     private func targetTimeCountdownTimeControls() -> NSView {
         let controls = NSStackView()
         controls.orientation = .horizontal
@@ -1245,6 +1260,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
 
     private func syncTargetTimeCountdownControls() {
         targetTimeCountdownTitleField?.stringValue = targetTimeCountdownPreferences.title
+        targetTimeCountdownIconCheckbox?.state = targetTimeCountdownPreferences.showsIcon ? .on : .off
         targetTimeCountdownHourField?.stringValue = "\(targetTimeCountdownPreferences.targetHour)"
         targetTimeCountdownHourStepper?.integerValue = targetTimeCountdownPreferences.targetHour
         targetTimeCountdownMinuteField?.stringValue = String(format: "%02d", targetTimeCountdownPreferences.targetMinute)
@@ -1483,6 +1499,15 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
 
     @objc private func targetTimeCountdownTitleEdited(_ sender: NSTextField) {
         applyTargetTimeCountdownTitle(sender.stringValue)
+    }
+
+    @objc private func targetTimeCountdownIconToggled(_ sender: NSButton) {
+        let showsIcon = sender.state == .on
+        guard targetTimeCountdownPreferences.showsIcon != showsIcon else {
+            return
+        }
+        targetTimeCountdownPreferences.showsIcon = showsIcon
+        targetTimeCountdownDidChange()
     }
 
     @objc private func targetTimeCountdownHourEdited(_ sender: NSTextField) {
@@ -1838,12 +1863,14 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
 
     private func targetTimeCountdownStatusText() -> String {
         let snapshot = targetTimeCountdownPreferences.snapshot()
+        let title = snapshot.title.isEmpty ? "未设置名称" : snapshot.title
         let target = targetTimeCountdownTimeText(hour: snapshot.targetHour, minute: snapshot.targetMinute)
         let status = snapshot.isPastTodayTarget ? "今天已过目标时间" : "尚未到目标时间"
         let background = TargetTimeCountdownBackgroundColor.color(for: targetTimeCountdownPreferences.backgroundColorID).title
         let textWeight = targetTimeCountdownPreferences.textWeight.title
         let textColor = TargetTimeCountdownTextColor.color(for: targetTimeCountdownPreferences.textColorID).title
-        return "\(snapshot.title) \(target)，剩余 \(snapshot.minutesRemaining) 分钟。\n过点处理：\(snapshot.pastBehavior.title)。背景色：\(background)。文字：\(textWeight) / \(textColor)。\(status)。"
+        let icon = targetTimeCountdownPreferences.showsIcon ? "显示" : "隐藏"
+        return "目标名称：\(title)。目标时间：\(target)，剩余 \(snapshot.minutesRemaining) 分钟。\n过点处理：\(snapshot.pastBehavior.title)。图标：\(icon)。背景色：\(background)。文字：\(textWeight) / \(textColor)。\(status)。"
     }
 
     private func targetTimeCountdownTimeText(hour: Int, minute: Int) -> String {
