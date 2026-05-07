@@ -2,74 +2,83 @@ using System.Runtime.InteropServices;
 
 namespace OneMenu.App.Services;
 
-/// <summary>
-/// Prevents Windows from sleeping using SetThreadExecutionState (kernel32).
-/// Equivalent to macOS IOPMAssertionCreateWithName.
-/// </summary>
 public class SleepPreventer : IDisposable
 {
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern uint SetThreadExecutionState(uint esFlags);
 
-    // ReSharper disable InconsistentNaming
     private const uint ES_CONTINUOUS = 0x80000000;
     private const uint ES_SYSTEM_REQUIRED = 0x00000001;
     private const uint ES_DISPLAY_REQUIRED = 0x00000002;
-    // ReSharper restore InconsistentNaming
 
     private bool _isEnabled;
+    private CancellationTokenSource? _autoDisableCts;
+    private DateTime? _enabledAt;
 
     public bool IsEnabled => _isEnabled;
+    public event Action? OnAutoDisabled;
 
-    /// <summary>
-    /// Prevents system sleep and display sleep.
-    /// Returns null on success, or an error message on failure.
-    /// </summary>
-    public string? Enable()
+    public string? Enable(int durationMinutes = 0)
     {
         if (_isEnabled) return null;
 
-        try
-        {
-            var result = SetThreadExecutionState(
-                ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);
+        var result = SetThreadExecutionState(
+            ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);
+        if (result == 0)
+            return $"SetThreadExecutionState failed (error {Marshal.GetLastWin32Error()})";
 
-            if (result == 0)
+        _isEnabled = true;
+        _enabledAt = DateTime.Now;
+
+        if (durationMinutes > 0)
+        {
+            _autoDisableCts?.Cancel();
+            _autoDisableCts = new CancellationTokenSource();
+            var ct = _autoDisableCts.Token;
+            _ = Task.Run(async () =>
             {
-                var err = Marshal.GetLastWin32Error();
-                return $"SetThreadExecutionState failed (error {err})";
-            }
+                try
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(durationMinutes), ct);
+                    if (!ct.IsCancellationRequested)
+                    {
+                        Disable();
+                        OnAutoDisabled?.Invoke();
+                    }
+                }
+                catch (TaskCanceledException) { }
+            }, ct);
+        }
 
-            _isEnabled = true;
-            return null;
-        }
-        catch (Exception ex)
-        {
-            return $"Sleep prevention failed: {ex.Message}";
-        }
+        return null;
     }
 
-    /// <summary>
-    /// Restores normal sleep behavior.
-    /// </summary>
     public void Disable()
     {
         if (!_isEnabled) return;
-
+        _autoDisableCts?.Cancel();
         SetThreadExecutionState(ES_CONTINUOUS);
         _isEnabled = false;
+        _enabledAt = null;
     }
 
-    /// <summary>
-    /// Toggle sleep prevention on/off.
-    /// </summary>
-    public string? Toggle()
+    public string? Toggle(int durationMinutes = 0)
     {
-        return _isEnabled ? (() => { Disable(); return null; })() : Enable();
+        if (_isEnabled) { Disable(); return null; }
+        return Enable(durationMinutes);
     }
+
+    public int ElapsedMinutes =>
+        _isEnabled && _enabledAt.HasValue
+            ? (int)(DateTime.Now - _enabledAt.Value).TotalMinutes : 0;
+
+    public int RemainingMinutes(int totalDuration) =>
+        _isEnabled && _enabledAt.HasValue
+            ? Math.Max(0, totalDuration - ElapsedMinutes) : 0;
 
     public void Dispose()
     {
+        _autoDisableCts?.Cancel();
         if (_isEnabled) Disable();
     }
 }

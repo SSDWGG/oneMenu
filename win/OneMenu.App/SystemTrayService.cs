@@ -92,6 +92,11 @@ public class SystemTrayService : IDisposable
         _claudeIcon.TrayMouseDoubleClick += (_, _) => ShowSettings();
         _countdownIcon.TrayMouseDoubleClick += (_, _) => ToggleCountdown();
         _sleepIcon.TrayMouseDoubleClick += (_, _) => ToggleSleep();
+        _sleepPreventer.OnAutoDisabled += () =>
+        {
+            _sleepPrefs.IsEnabled = false;
+            Application.Current?.Dispatcher.Invoke(UpdateSleepIcon);
+        };
 
         _weatherService.OnSnapshotChanged += snap =>
         {
@@ -415,15 +420,16 @@ public class SystemTrayService : IDisposable
     private void UpdateSleepIcon()
     {
         var enabled = _sleepPreventer.IsEnabled;
-        _sleepIcon.Icon = TextIcon(enabled ? "AWAKE" : "Z", enabled ? Color.Green : Color.Gray);
+        var remaining = enabled ? _sleepPreventer.RemainingMinutes(_sleepPrefs.DurationMinutes) : 0;
+        _sleepIcon.Icon = CoffeeCupIcon(enabled, enabled ? remaining : 0);
         _sleepIcon.ToolTipText = enabled
-            ? "Sleep prevention ON — system will not sleep.\nClick to disable."
-            : "Sleep prevention OFF\nClick to enable.";
+            ? $"防休眠已开启 · {remaining} 分钟后自动关闭\n剩余时间 {_sleepPreventer.ElapsedMinutes}/{_sleepPrefs.DurationMinutes} 分钟\n双击切换"
+            : "防休眠已关闭\n双击切换";
     }
 
     private void ToggleSleep()
     {
-        var error = _sleepPreventer.Toggle();
+        var error = _sleepPreventer.Toggle(_sleepPrefs.DurationMinutes);
         if (error != null)
         {
             _sleepPrefs.IsEnabled = _sleepPreventer.IsEnabled;
@@ -431,6 +437,68 @@ public class SystemTrayService : IDisposable
         }
         _sleepPrefs.IsEnabled = _sleepPreventer.IsEnabled;
         UpdateSleepIcon();
+    }
+
+    /// <summary>
+    /// Draws a coffee cup icon. Filled brown interior when active, empty outline when inactive.
+    /// </summary>
+    private static Icon CoffeeCupIcon(bool filled, int remainingMinutes = 0)
+    {
+        var bmp = new Bitmap(24, 24);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+
+        var cupColor = filled ? Color.FromArgb(139, 90, 43) : Color.Gray; // brown vs gray
+        var steamColor = filled ? Color.White : Color.DimGray;
+
+        using (var pen = new Pen(cupColor, 1.8f) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+        {
+            // Cup body: trapezoid
+            var bodyPoints = new PointF[]
+            {
+                new(5, 9), new(7, 20), new(17, 20), new(19, 9)
+            };
+            if (filled)
+            {
+                using var bodyBrush = new SolidBrush(cupColor);
+                g.FillPolygon(bodyBrush, bodyPoints);
+
+                // Coffee surface highlight
+                using var coffeeBrush = new SolidBrush(Color.FromArgb(180, 120, 60));
+                g.FillRectangle(coffeeBrush, 6, 12, 12, 4);
+
+                // Remaining minutes text (tiny)
+                if (remainingMinutes > 0)
+                {
+                    using var font = new Font("Segoe UI", 6f, FontStyle.Bold);
+                    using var textBrush = new SolidBrush(Color.White);
+                    var text = remainingMinutes <= 60 ? $"{remainingMinutes}" : $"{remainingMinutes / 60}h";
+                    var sf = new StringFormat { Alignment = StringAlignment.Center };
+                    g.DrawString(text, font, textBrush, 12, 13, sf);
+                }
+            }
+            g.DrawPolygon(pen, bodyPoints);
+
+            // Cup handle
+            g.DrawArc(pen, 18, 12, 9, 8, 270, 180);
+
+            // Cup rim (top of trapezoid)
+            g.DrawLine(pen, 4, 9, 20, 9);
+
+            // Saucer
+            g.DrawLine(pen, 3, 22, 21, 22);
+        }
+
+        // Steam waves (only when active)
+        if (filled)
+        {
+            using var steamPen = new Pen(Color.White, 1.3f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+            g.DrawLine(steamPen, 10, 7, 10, 3);
+            g.DrawLine(steamPen, 14, 8, 14, 2);
+            g.DrawLine(steamPen, 6, 8, 6, 4);
+        }
+
+        return Icon.FromHandle(bmp.GetHicon());
     }
 
     #endregion

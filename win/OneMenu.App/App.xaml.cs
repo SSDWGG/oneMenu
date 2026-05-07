@@ -30,11 +30,11 @@ public partial class App : Application
 
         _store = new PreferencesStore();
 
-        // Wire sleep prevention from persisted preference
+        // Sleep prevention
         _sleepPreventer = new SleepPreventer();
         var sleepPrefs = new SleepPreventionPreferences(_store);
         if (sleepPrefs.IsEnabled)
-            _sleepPreventer.Enable();
+            _sleepPreventer.Enable(sleepPrefs.DurationMinutes);
 
         _trayService = new SystemTrayService(_store, _sleepPreventer);
         _trayService.Start();

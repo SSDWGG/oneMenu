@@ -3,10 +3,33 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <StackPanel Margin="0,20,0,0">
         <TextBlock Text="防休眠" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,6"/>
-        <TextBlock Text="保持系统活跃" FontSize="11" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Margin="0,0,0,20"/>
+        <TextBlock Text="保持系统活跃 · 自动启动" FontSize="11" Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Margin="0,0,0,20"/>
 
+        <!-- Sleep Prevention Toggle -->
         <CheckBox x:Name="EnableCheck" Content="保持活跃（防休眠）" FontSize="13"
                   Checked="OnToggled" Unchecked="OnToggled" Margin="0,0,0,8"/>
+
+        <!-- Duration -->
+        <TextBlock Text="自动关闭时间（分钟）" FontSize="13" FontWeight="SemiBold" Margin="0,16,0,4"/>
+        <TextBlock Text="0 = 一直保持活跃（不自动关闭）" FontSize="10"
+                   Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Margin="0,0,0,4"/>
+        <TextBox x:Name="DurationBox" Width="80" HorizontalAlignment="Left" FontSize="13"
+                 TextChanged="OnDurationChanged"/>
+
+        <!-- Remaining time -->
+        <TextBlock x:Name="RemainingLabel" FontSize="11" Margin="0,8,0,0"/>
+
+        <!-- Status -->
         <TextBlock x:Name="StatusLabel" FontSize="11" Margin="0,4,0,0"/>
+
+        <!-- Separator -->
+        <Separator Margin="0,24,0,16"/>
+
+        <!-- Auto-start -->
+        <TextBlock Text="开机自启动" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+        <CheckBox x:Name="AutoStartCheck" Content="开机时自动启动 oneMenu" FontSize="13"
+                  Checked="OnAutoStartChanged" Unchecked="OnAutoStartChanged"/>
+        <TextBlock Text="将 oneMenu 添加到 Windows 注册表的启动项中。" FontSize="10"
+                   Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" Margin="0,2,0,0"/>
     </StackPanel>
 </Page>
