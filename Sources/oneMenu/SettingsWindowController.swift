@@ -723,15 +723,52 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
     private func makeSleepPage() -> NSView {
         let stack = basePageStack()
         addHeader(to: stack, title: "防休眠", subtitle: "通过 macOS 电源断言阻止系统和显示器因空闲进入睡眠。")
-        addStatusBarToggle(to: stack, module: .sleep, title: "在顶部状态栏显示防休眠状态")
+        addStatusBarToggle(to: stack, module: .sleep, title: "在顶部状态栏显示防休眠状态（咖啡杯图标）")
 
         let sleepToggle = NSButton(checkboxWithTitle: "保持 Mac 活跃（防休眠）", target: self, action: #selector(sleepPreventionToggled(_:)))
         sleepToggle.state = sleepPreventionPreferences.isEnabled ? .on : .off
         stack.addArrangedSubview(settingRow(title: "运行状态", detail: "开启后会立即创建系统和显示器防休眠断言。", control: sleepToggle))
 
+        // Duration input
+        let durationValue = sleepPreventionPreferences.durationMinutes
+        let durationField = NSTextField()
+        durationField.stringValue = String(durationValue)
+        durationField.controlSize = .regular
+        durationField.font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        durationField.alignment = .right
+        durationField.target = self
+        durationField.action = #selector(sleepDurationChanged(_:))
+        NSLayoutConstraint.activate([durationField.widthAnchor.constraint(equalToConstant: 60)])
+        stack.addArrangedSubview(settingRow(
+            title: "自动关闭时间（分钟）",
+            detail: "0 = 一直保持活跃。默认 5 分钟后自动关闭防休眠。",
+            control: durationField
+        ))
+
+        // Auto-start toggle
+        let autoStartToggle = NSButton(checkboxWithTitle: "开机时自动启动 oneMenu", target: self, action: #selector(autoStartToggled(_:)))
+        autoStartToggle.state = AutoStartPreferences.isEnabled ? .on : .off
+        stack.addArrangedSubview(settingRow(title: "登录自启动", detail: "将 oneMenu 添加为 macOS 登录项（SMAppService）。", control: autoStartToggle))
+
         sleepStateLabel = secondaryLabel(sleepIsEnabled ? "当前状态：已开启" : "当前状态：已关闭")
         addInfoPanel(to: stack, title: "当前防休眠状态", content: sleepStateLabel!)
         return scrollView(for: stack)
+    }
+
+    @objc private func sleepDurationChanged(_ sender: NSTextField) {
+        if let value = Int(sender.stringValue) {
+            sleepPreventionPreferences.durationMinutes = value
+        }
+        onSleepPreferenceChange()
+    }
+
+    @objc private func autoStartToggled(_ sender: NSButton) {
+        let enabled = sender.state == .on
+        if enabled {
+            AutoStartPreferences.enable()
+        } else {
+            AutoStartPreferences.disable()
+        }
     }
 
     private func makeAppearancePage() -> NSView {

@@ -2,6 +2,7 @@ import AppKit
 import CodexStatusCore
 import Foundation
 import IOKit.pwr_mgt
+import ServiceManagement
 import UserNotifications
 
 @main
@@ -119,6 +120,10 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         installStatusHoverDismissMonitors()
         configureNotifications()
         applySleepPreventionPreference()
+        sleepPreventer.onAutoDisabled = { [weak self] in
+            self?.sleepPreventionPreferences.isEnabled = false
+            self?.refresh()
+        }
         weatherService.start()
         refreshSessionMonitors(force: true)
         refreshHardwareIfNeeded(force: true)
@@ -245,6 +250,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             sleepButton.imagePosition = .imageOnly
             sleepButton.imageScaling = .scaleProportionallyDown
             sleepButton.toolTip = "防休眠：关闭"
+            sleepButton.image = coffeeCupIcon(filled: false)
             configureStatusButton(sleepButton, module: .sleep)
         }
 
@@ -1786,12 +1792,13 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             return
         }
 
-        let title = sleepPreventer.isEnabled ? "防休眠：已开启" : "防休眠：已关闭"
-        button.image = statusSymbol(
-            named: sleepPreventer.isEnabled ? "sun.max.fill" : "moon.zzz.fill",
-            fallback: "power",
-            description: title
-        )
+        let enabled = sleepPreventer.isEnabled
+        let title = enabled
+            ? (sleepPreventionPreferences.durationMinutes > 0
+                ? "防休眠：已开启（\(sleepPreventer.elapsedMinutes)/\(sleepPreventionPreferences.durationMinutes) 分钟）"
+                : "防休眠：已开启（无自动关闭）")
+            : "防休眠：已关闭"
+        button.image = coffeeCupIcon(filled: enabled)
         button.toolTip = title
         button.setAccessibilityLabel(title)
     }
@@ -1816,6 +1823,119 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         let image = NSImage(systemSymbolName: name, accessibilityDescription: description)
             ?? NSImage(systemSymbolName: fallback, accessibilityDescription: description)
         image?.isTemplate = true
+        return image
+    }
+
+    /// Draws a coffee cup icon for the sleep prevention status bar item.
+    /// Filled = solid cup body + steam (active). Empty = outline only (inactive).
+    private func coffeeCupIcon(filled: Bool) -> NSImage {
+        let size: CGFloat = 18
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.isTemplate = true
+        image.lockFocus()
+
+        guard let ctx = NSGraphicsContext.current?.cgContext else {
+            image.unlockFocus()
+            return image
+        }
+
+        ctx.setLineWidth(1.5)
+        ctx.setLineCap(.round)
+        ctx.setLineJoin(.round)
+
+        let cupLeft: CGFloat = 3.5
+        let cupRight: CGFloat = 14.5
+        let cupTop: CGFloat = 6
+        let cupBottom: CGFloat = 16
+        let rimTop: CGFloat = cupTop - 1.5
+        let handleRight: CGFloat = cupRight + 1
+
+        // --- Cup body ---
+        // Trapezoid: top narrower, bottom wider
+        let topLeft = CGPoint(x: cupLeft + 1, y: cupTop)
+        let topRight = CGPoint(x: cupRight - 1, y: cupTop)
+        let bottomLeft = CGPoint(x: cupLeft, y: cupBottom)
+        let bottomRight = CGPoint(x: cupRight, y: cupBottom)
+
+        if filled {
+            // Solid body
+            ctx.move(to: topLeft)
+            ctx.addLine(to: topRight)
+            ctx.addLine(to: bottomRight)
+            ctx.addLine(to: bottomLeft)
+            ctx.closePath()
+            ctx.setFillColor(CGColor(gray: 0, alpha: 0.85))
+            ctx.fillPath()
+
+            // Coffee surface highlight line inside cup
+            ctx.setStrokeColor(CGColor(gray: 1, alpha: 0.35))
+            ctx.setLineWidth(1)
+            let coffeeY = cupTop + 3
+            ctx.move(to: CGPoint(x: topLeft.x + 1, y: coffeeY))
+            ctx.addLine(to: CGPoint(x: topRight.x - 1, y: coffeeY))
+            ctx.strokePath()
+
+            // Rim line
+            ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.85))
+            ctx.setLineWidth(1.5)
+            ctx.move(to: CGPoint(x: cupLeft, y: rimTop))
+            ctx.addLine(to: CGPoint(x: cupRight, y: rimTop))
+            ctx.strokePath()
+
+            // Cup handle
+            ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.85))
+            ctx.setLineWidth(1.3)
+            ctx.addArc(center: CGPoint(x: handleRight + 2, y: cupTop + 4.5),
+                       radius: 4, startAngle: .pi * 0.7, endAngle: .pi * 1.3, clockwise: false)
+            ctx.strokePath()
+
+            // Saucer
+            ctx.move(to: CGPoint(x: cupLeft - 2, y: cupBottom + 2))
+            ctx.addLine(to: CGPoint(x: cupRight + 4, y: cupBottom + 2))
+            ctx.strokePath()
+
+            // Steam
+            ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.6))
+            ctx.setLineWidth(1)
+            ctx.move(to: CGPoint(x: 7, y: 3))
+            ctx.addLine(to: CGPoint(x: 7, y: 0))
+            ctx.strokePath()
+            ctx.move(to: CGPoint(x: 10, y: 3.5))
+            ctx.addLine(to: CGPoint(x: 10, y: 0.5))
+            ctx.strokePath()
+            ctx.move(to: CGPoint(x: 13, y: 4))
+            ctx.addLine(to: CGPoint(x: 13, y: 1))
+            ctx.strokePath()
+        } else {
+            // Outline only
+            ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.5))
+            ctx.setLineWidth(1.2)
+
+            // Cup body outline
+            ctx.move(to: topLeft)
+            ctx.addLine(to: topRight)
+            ctx.addLine(to: bottomRight)
+            ctx.addLine(to: bottomLeft)
+            ctx.closePath()
+            ctx.strokePath()
+
+            // Rim
+            ctx.move(to: CGPoint(x: cupLeft + 1, y: rimTop))
+            ctx.addLine(to: CGPoint(x: cupRight - 1, y: rimTop))
+            ctx.strokePath()
+
+            // Handle
+            ctx.addArc(center: CGPoint(x: handleRight + 2, y: cupTop + 4.5),
+                       radius: 4, startAngle: .pi * 0.7, endAngle: .pi * 1.3, clockwise: false)
+            ctx.strokePath()
+
+            // Saucer
+            ctx.move(to: CGPoint(x: cupLeft - 2, y: cupBottom + 2))
+            ctx.addLine(to: CGPoint(x: cupRight + 4, y: cupBottom + 2))
+            ctx.strokePath()
+        }
+
+        image.unlockFocus()
         return image
     }
 
@@ -2244,7 +2364,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
 
     private func applySleepPreventionPreference() {
         if sleepPreventionPreferences.isEnabled {
-            powerAssertionErrorMessage = sleepPreventer.enable()
+            powerAssertionErrorMessage = sleepPreventer.enable(durationMinutes: sleepPreventionPreferences.durationMinutes)
             if powerAssertionErrorMessage != nil {
                 sleepPreventionPreferences.isEnabled = false
                 sleepPreventer.disable()
@@ -2747,6 +2867,7 @@ final class StatusLightColorPreferences {
 final class SleepPreventionPreferences {
     private enum Key {
         static let isEnabled = "preventSystemSleep"
+        static let durationMinutes = "preventSystemSleep.durationMinutes"
     }
 
     private let defaults: UserDefaults
@@ -2758,6 +2879,53 @@ final class SleepPreventionPreferences {
     var isEnabled: Bool {
         get { defaults.bool(forKey: Key.isEnabled) }
         set { defaults.set(newValue, forKey: Key.isEnabled) }
+    }
+
+    /// Duration in minutes before auto-disabling. 0 = indefinite (no auto-disable). Default 5.
+    var durationMinutes: Int {
+        get {
+            if defaults.object(forKey: Key.durationMinutes) == nil {
+                return 5
+            }
+            return min(max(defaults.integer(forKey: Key.durationMinutes), 0), 480)
+        }
+        set { defaults.set(min(max(newValue, 0), 480), forKey: Key.durationMinutes) }
+    }
+}
+
+enum AutoStartPreferences {
+    private enum Key {
+        static let autoStartEnabled = "autoStartEnabled"
+    }
+
+    static var isEnabled: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: Key.autoStartEnabled) == nil {
+                return SMAppService.mainApp.status == .enabled
+            }
+            return UserDefaults.standard.bool(forKey: Key.autoStartEnabled)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Key.autoStartEnabled)
+        }
+    }
+
+    static func enable() {
+        UserDefaults.standard.set(true, forKey: Key.autoStartEnabled)
+        do {
+            try SMAppService.mainApp.register()
+        } catch {
+            print("SMAppService register failed: \(error)")
+        }
+    }
+
+    static func disable() {
+        UserDefaults.standard.set(false, forKey: Key.autoStartEnabled)
+        do {
+            try SMAppService.mainApp.unregister()
+        } catch {
+            print("SMAppService unregister failed: \(error)")
+        }
     }
 }
 
@@ -2945,10 +3113,25 @@ private struct HardwareStatusBarPresentation {
 private final class SleepPreventer {
     private var systemSleepAssertionID = IOPMAssertionID(kIOPMNullAssertionID)
     private var displaySleepAssertionID = IOPMAssertionID(kIOPMNullAssertionID)
+    private var autoDisableWorkItem: DispatchWorkItem?
 
     private(set) var isEnabled = false
+    private var enabledAt: Date?
 
-    func enable() -> String? {
+    var onAutoDisabled: (() -> Void)?
+
+    /// Elapsed minutes since sleep prevention was enabled. 0 if not enabled.
+    var elapsedMinutes: Int {
+        guard let enabledAt else { return 0 }
+        return Int(Date().timeIntervalSince(enabledAt) / 60)
+    }
+
+    func remainingMinutes(totalDuration: Int) -> Int {
+        guard isEnabled, totalDuration > 0 else { return 0 }
+        return max(0, totalDuration - elapsedMinutes)
+    }
+
+    func enable(durationMinutes: Int = 0) -> String? {
         guard !hasActiveAssertions else {
             isEnabled = true
             return nil
@@ -2977,16 +3160,36 @@ private final class SleepPreventer {
         }
 
         isEnabled = true
+        enabledAt = Date()
+
+        // Auto-disable timer
+        autoDisableWorkItem?.cancel()
+        if durationMinutes > 0 {
+            let item = DispatchWorkItem { [weak self] in
+                guard let self, self.isEnabled else { return }
+                self.disable()
+                DispatchQueue.main.async {
+                    self.onAutoDisabled?()
+                }
+            }
+            autoDisableWorkItem = item
+            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(durationMinutes * 60), execute: item)
+        }
+
         return nil
     }
 
     func disable() {
+        autoDisableWorkItem?.cancel()
+        autoDisableWorkItem = nil
         releaseAssertion(&displaySleepAssertionID)
         releaseAssertion(&systemSleepAssertionID)
         isEnabled = false
+        enabledAt = nil
     }
 
     deinit {
+        autoDisableWorkItem?.cancel()
         disable()
     }
 
