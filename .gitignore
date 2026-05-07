@@ -6,3 +6,4 @@ DerivedData/
 Resources/AppIcon.iconset/
 .env.deploy.local
 oneMenu.app/
+.claude/
