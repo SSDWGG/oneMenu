@@ -321,7 +321,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         versionItem.isEnabled = false
         menu.addItem(versionItem)
 
-        let quitItem = NSMenuItem(title: "退出 oneMenu", action: #selector(quit(_:)), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "退出 oneMenu", action: #selector(quit(_:)), keyEquivalent: "")
         quitItem.target = self
         menu.addItem(quitItem)
     }
@@ -356,7 +356,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             pendingStatusClickWorkItem?.cancel()
             pendingStatusClickWorkItem = nil
             hideStatusHover()
-            openSettings(for: module, sender: sender)
+            menu.popUp(positioning: nil, at: .zero, in: sender)
             return
         }
 
