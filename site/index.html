@@ -12,9 +12,29 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Floating background orbs that follow mouse -->
+    <div class="bg-orbs" aria-hidden="true">
+        <div class="orb orb-1" data-parallax="0.03"></div>
+        <div class="orb orb-2" data-parallax="0.06"></div>
+        <div class="orb orb-3" data-parallax="0.04"></div>
+        <div class="orb orb-4" data-parallax="0.08"></div>
+    </div>
+
+    <!-- Enhanced cursor follower -->
     <div class="cursor-follower" data-cursor aria-hidden="true">
         <span class="cursor-halo"></span>
         <span class="cursor-core"></span>
+        <span class="cursor-ring"></span>
+    </div>
+
+    <!-- Floating particles that drift with mouse -->
+    <div class="glass-particles" aria-hidden="true">
+        <span class="particle p-1"></span>
+        <span class="particle p-2"></span>
+        <span class="particle p-3"></span>
+        <span class="particle p-4"></span>
+        <span class="particle p-5"></span>
+        <span class="particle p-6"></span>
     </div>
 
     <header class="site-header" aria-label="主导航" data-i18n-attr="aria-label:headerAria">
@@ -36,8 +56,9 @@
     </header>
 
     <main id="top">
+        <!-- Hero Section -->
         <section class="hero" aria-labelledby="hero-title">
-            <div class="hero-copy">
+            <div class="hero-copy" data-parallax="0.05">
                 <p class="eyebrow" data-i18n="heroEyebrow">macOS menu bar utility</p>
                 <h1 id="hero-title" data-i18n="heroTitle">一目了然，掌控 AI 任务</h1>
                 <p class="hero-lede" data-i18n="heroLede">
@@ -64,23 +85,41 @@
                 </dl>
             </div>
 
-            <div class="product-visual" aria-label="oneMenu 产品预览" data-i18n-attr="aria-label:productAria" data-spring-card>
-                <div class="menubar">
-                    <span class="window-controls" aria-hidden="true">
-                        <span class="window-dot red"></span>
-                        <span class="window-dot amber"></span>
-                        <span class="window-dot green"></span>
-                    </span>
-                    <span class="menubar-title">oneMenu</span>
-                    <span class="menubar-modules" aria-hidden="true">
-                        <span class="menubar-pill gpt-pill">GPT</span>
-                        <span class="menubar-pill claude-pill">Claude</span>
-                        <span class="menubar-pill">22°</span>
-                        <span class="menubar-pill">内存 63%</span>
-                        <span class="menubar-pill">下班 42分</span>
-                    </span>
+            <div class="product-visual" aria-label="oneMenu 产品预览" data-i18n-attr="aria-label:productAria" data-spring-card data-parallax="-0.04">
+                <!-- Glass reflection overlay -->
+                <span class="glass-reflection" aria-hidden="true"></span>
+
+                <!-- Floating menu bar mockup -->
+                <div class="menubar-float" data-float="3">
+                    <div class="menubar">
+                        <span class="window-controls" aria-hidden="true">
+                            <span class="window-dot red"></span>
+                            <span class="window-dot amber"></span>
+                            <span class="window-dot green"></span>
+                        </span>
+                        <span class="menubar-title">oneMenu</span>
+                        <span class="menubar-modules" aria-hidden="true">
+                            <span class="menubar-pill gpt-pill">
+                                <span class="pill-dot"></span>GPT
+                            </span>
+                            <span class="menubar-pill claude-pill">
+                                <span class="pill-dot"></span>Claude
+                            </span>
+                            <span class="menubar-pill weather-pill">
+                                <span class="pill-dot"></span>22°
+                            </span>
+                            <span class="menubar-pill hardware-pill">
+                                <span class="pill-dot"></span>内存 63%
+                            </span>
+                            <span class="menubar-pill countdown-pill">
+                                <span class="pill-dot"></span>下班 42分
+                            </span>
+                        </span>
+                    </div>
                 </div>
-                <div class="status-panel">
+
+                <!-- Status panel -->
+                <div class="status-panel" data-float="-2">
                     <div class="panel-head">
                         <img src="assets/app-icon.png" alt="oneMenu 图标" width="72" height="72" data-i18n-attr="alt:iconAlt">
                         <div>
@@ -90,14 +129,14 @@
                     </div>
                     <div class="provider-grid">
                         <div class="provider running">
-                            <span class="provider-dot"></span>
+                            <span class="provider-dot pulsing"></span>
                             <div>
                                 <strong>GPT</strong>
                                 <span data-i18n="activeSessionOne">活跃会话 1</span>
                             </div>
                         </div>
                         <div class="provider running">
-                            <span class="provider-dot"></span>
+                            <span class="provider-dot pulsing"></span>
                             <div>
                                 <strong>Claude</strong>
                                 <span data-i18n="idleSessionOne">闲置会话 1</span>
@@ -136,17 +175,18 @@
                         <p data-i18n="latestEvent">菜单栏模块</p>
                         <div class="session-row">
                             <span data-i18n="sampleRunningTitle">GPT/Codex 与 Claude 使用品牌图标独立展示</span>
-                            <span data-i18n="running">运行中</span>
+                            <span class="session-badge" data-i18n="running">运行中</span>
                         </div>
                         <div class="session-row muted">
                             <span data-i18n="sampleEndedTitle">硬件状态可切换 CPU、内存、电池、温度或风扇</span>
-                            <span data-i18n="configurable">可配置</span>
+                            <span class="session-badge configurable" data-i18n="configurable">可配置</span>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
+        <!-- Features Section -->
         <section class="section band" id="features" aria-labelledby="features-title">
             <div class="section-heading">
                 <p class="eyebrow" data-i18n="featuresEyebrow">What it watches</p>
@@ -208,12 +248,14 @@
             </div>
         </section>
 
+        <!-- Privacy Section -->
         <section class="section privacy" id="privacy" aria-labelledby="privacy-title">
             <div>
                 <p class="eyebrow" data-i18n="privacyEyebrow">Local first</p>
                 <h2 id="privacy-title" data-i18n="privacyTitle">本地解析，不上传会话正文。</h2>
             </div>
-            <div class="privacy-copy">
+            <div class="privacy-copy" data-spring-card>
+                <span class="glass-reflection" aria-hidden="true"></span>
                 <p data-i18n="privacyText">
                     oneMenu 只读取运行状态、会话标题和系统状态快照。它不复制完整会话正文，也不需要远程账号。
                     天气只用经纬度请求预报；AI 状态判断都在你的 Mac 上完成。
@@ -224,9 +266,15 @@
                     <li><span></span><span data-i18n="privacyItemWeather">天气预报只发送经纬度，不上传会话内容</span></li>
                     <li><span></span><span data-i18n="privacyItemSleep">防休眠功能必须由用户手动开启</span></li>
                 </ul>
+                <!-- Local-first indicator -->
+                <div class="local-badge" aria-hidden="true">
+                    <span class="local-icon">&#9679;</span>
+                    <span>100% Local Processing</span>
+                </div>
             </div>
         </section>
 
+        <!-- Install Section -->
         <section class="section install" id="install" aria-labelledby="install-title">
             <div class="section-heading">
                 <p class="eyebrow" data-i18n="installEyebrow">Install</p>
@@ -250,7 +298,10 @@
                     <p data-i18n="installStepThreeText">从 Applications 启动，菜单栏出现状态灯后即可使用。</p>
                 </article>
             </div>
+
+            <!-- Gatekeeper warning visual -->
             <div class="security-help" aria-labelledby="security-help-title" data-spring-card>
+                <span class="glass-reflection" aria-hidden="true"></span>
                 <div class="security-copy">
                     <p class="eyebrow" data-i18n="securityEyebrow">Gatekeeper</p>
                     <h3 id="security-help-title" data-i18n="securityTitle">如果提示"Apple 无法验证"，这样打开。</h3>
@@ -286,7 +337,9 @@
                     </div>
                 </div>
             </div>
-            <div class="download-panel">
+
+            <!-- Download panel -->
+            <div class="download-panel" data-spring-card>
                 <div>
                     <p class="panel-label" data-i18n="currentRelease">Current release</p>
                     <h3>oneMenu 0.1.2 for macOS</h3>

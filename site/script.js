@@ -1,3 +1,9 @@
+/* ============================================
+   oneMenu Landing Page — Interactions
+   Neumorphic glass + mouse-following + parallax
+   ============================================ */
+
+/* ---------- i18n ---------- */
 const translations = {
     zh: {
         title: "oneMenu - macOS 菜单栏 AI 状态与系统监控",
@@ -252,44 +258,61 @@ document.querySelector("[data-lang-toggle]")?.addEventListener("click", (event) 
 
 applyLanguage(initialLanguage);
 
+/* ---------- Shared state ---------- */
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const hasPrecisePointer = window.matchMedia("(pointer: fine)").matches;
+const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+const scrollY = { current: window.scrollY, target: window.scrollY, vel: 0 };
 
+/* ============================================
+   ENHANCED CURSOR FOLLOWER
+   ============================================ */
 function initCursorFollower() {
     const cursor = document.querySelector("[data-cursor]");
-
-    if (!cursor || reduceMotion.matches || !hasPrecisePointer) {
-        return;
-    }
+    if (!cursor || reduceMotion.matches || !hasPrecisePointer) return;
 
     document.documentElement.classList.add("cursor-enabled");
 
     const state = {
-        x: window.innerWidth / 2,
-        y: window.innerHeight / 2,
+        x: mouse.x,
+        y: mouse.y,
         vx: 0,
         vy: 0,
-        targetX: window.innerWidth / 2,
-        targetY: window.innerHeight / 2
+        targetX: mouse.x,
+        targetY: mouse.y
     };
 
     window.addEventListener("pointermove", (event) => {
+        mouse.x = event.clientX;
+        mouse.y = event.clientY;
         state.targetX = event.clientX;
         state.targetY = event.clientY;
         document.documentElement.classList.add("cursor-ready");
 
-        if (event.target.closest("a, button, [data-spring-card]")) {
+        const interactive = event.target.closest("a, button, [data-spring-card], .feature-card-toggle");
+        if (interactive) {
             document.documentElement.classList.add("cursor-active");
         } else {
             document.documentElement.classList.remove("cursor-active");
         }
     }, { passive: true });
 
+    window.addEventListener("pointerleave", () => {
+        document.documentElement.classList.remove("cursor-ready");
+    });
+
+    window.addEventListener("pointerenter", () => {
+        document.documentElement.classList.add("cursor-ready");
+    });
+
     const tick = () => {
-        state.vx += (state.targetX - state.x) * 0.18;
-        state.vy += (state.targetY - state.y) * 0.18;
-        state.vx *= 0.68;
-        state.vy *= 0.68;
+        // Spring physics for buttery smooth follow
+        const dx = state.targetX - state.x;
+        const dy = state.targetY - state.y;
+        state.vx += dx * 0.14;
+        state.vy += dy * 0.14;
+        state.vx *= 0.64;
+        state.vy *= 0.64;
         state.x += state.vx;
         state.y += state.vy;
         cursor.style.transform = `translate3d(${state.x}px, ${state.y}px, 0)`;
@@ -299,28 +322,156 @@ function initCursorFollower() {
     tick();
 }
 
+/* ============================================
+   BACKGROUND ORBS — follow mouse at different rates
+   ============================================ */
+function initBackgroundOrbs() {
+    if (reduceMotion.matches) return;
+
+    const orbs = document.querySelectorAll(".orb");
+    if (!orbs.length) return;
+
+    const states = [];
+    orbs.forEach((orb) => {
+        const rate = parseFloat(orb.getAttribute("data-parallax")) || 0.04;
+        states.push({
+            el: orb,
+            rate,
+            x: 0,
+            y: 0,
+            vx: 0,
+            vy: 0
+        });
+    });
+
+    const tick = () => {
+        // Map mouse position to a -1..1 range relative to viewport center
+        const mx = (mouse.x / window.innerWidth - 0.5) * 2;
+        const my = (mouse.y / window.innerHeight - 0.5) * 2;
+
+        for (const s of states) {
+            const tx = mx * s.rate * 120;
+            const ty = my * s.rate * 120;
+            s.vx += (tx - s.x) * 0.04;
+            s.vy += (ty - s.y) * 0.04;
+            s.vx *= 0.88;
+            s.vy *= 0.88;
+            s.x += s.vx;
+            s.y += s.vy;
+            s.el.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px)`;
+        }
+
+        window.requestAnimationFrame(tick);
+    };
+
+    tick();
+}
+
+/* ============================================
+   GLASS PARTICLES — drift with mouse + autonomous movement
+   ============================================ */
+function initParticles() {
+    if (reduceMotion.matches || !hasPrecisePointer) return;
+
+    const particles = document.querySelectorAll(".particle");
+    if (!particles.length) return;
+
+    const states = [];
+    particles.forEach((p, i) => {
+        const rate = 0.02 + Math.random() * 0.06;
+        const phase = Math.random() * Math.PI * 2;
+        states.push({
+            el: p,
+            rate,
+            phase,
+            speed: 0.3 + Math.random() * 0.5,
+            baseX: 0,
+            baseY: 0,
+            x: 0,
+            y: 0,
+            vx: 0,
+            vy: 0
+        });
+    });
+
+    const startTime = performance.now();
+
+    const tick = (now) => {
+        const t = now * 0.001;
+        const mx = (mouse.x / window.innerWidth - 0.5) * 2;
+        const my = (mouse.y / window.innerHeight - 0.5) * 2;
+
+        for (const s of states) {
+            // Mouse-driven target
+            const tx = mx * s.rate * 80 + Math.sin(t * s.speed + s.phase) * 14;
+            const ty = my * s.rate * 80 + Math.cos(t * s.speed * 1.3 + s.phase) * 14;
+            s.vx += (tx - s.x) * 0.05;
+            s.vy += (ty - s.y) * 0.05;
+            s.vx *= 0.84;
+            s.vy *= 0.84;
+            s.x += s.vx;
+            s.y += s.vy;
+            s.el.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px)`;
+        }
+
+        window.requestAnimationFrame(tick);
+    };
+
+    window.requestAnimationFrame(tick);
+}
+
+/* ============================================
+   SCROLL PARALLAX — elements shift on scroll
+   ============================================ */
+function initScrollParallax() {
+    if (reduceMotion.matches) return;
+
+    const targets = document.querySelectorAll("[data-parallax]");
+    if (!targets.length) return;
+
+    const states = [];
+    targets.forEach((el) => {
+        const rate = parseFloat(el.getAttribute("data-parallax")) || 0.05;
+        states.push({ el, rate, offset: 0, current: 0, vel: 0 });
+    });
+
+    const tick = () => {
+        scrollY.vel += (scrollY.target - scrollY.current) * 0.08;
+        scrollY.vel *= 0.82;
+        scrollY.current += scrollY.vel;
+
+        for (const s of states) {
+            const rect = s.el.getBoundingClientRect();
+            const centerY = rect.top + rect.height / 2;
+            const viewCenter = window.innerHeight / 2;
+            const offset = (centerY - viewCenter) / window.innerHeight;
+            s.vel += (offset * s.rate * 80 - s.current) * 0.06;
+            s.vel *= 0.84;
+            s.current += s.vel;
+            s.el.style.transform = `translateY(${s.current.toFixed(1)}px)`;
+        }
+
+        window.requestAnimationFrame(tick);
+    };
+
+    window.addEventListener("scroll", () => {
+        scrollY.target = window.scrollY;
+    }, { passive: true });
+
+    tick();
+}
+
+/* ============================================
+   SPRING CARDS — 3D tilt on hover
+   ============================================ */
 function initSpringCards() {
-    if (reduceMotion.matches || !hasPrecisePointer) {
-        return;
-    }
+    if (reduceMotion.matches || !hasPrecisePointer) return;
 
     document.querySelectorAll("[data-spring-card]").forEach((card) => {
         const state = {
-            x: 0,
-            y: 0,
-            rx: 0,
-            ry: 0,
-            scale: 1,
-            vx: 0,
-            vy: 0,
-            vrx: 0,
-            vry: 0,
-            vs: 0,
-            tx: 0,
-            ty: 0,
-            trx: 0,
-            try: 0,
-            ts: 1
+            x: 0, y: 0, rx: 0, ry: 0, scale: 1,
+            vx: 0, vy: 0, vrx: 0, vry: 0, vs: 0,
+            tx: 0, ty: 0, trx: 0, try: 0, ts: 1
         };
 
         const animate = () => {
@@ -330,11 +481,11 @@ function initSpringCards() {
             state.vry += (state.try - state.ry) * 0.14;
             state.vs += (state.ts - state.scale) * 0.18;
 
-            state.vx *= 0.66;
-            state.vy *= 0.66;
-            state.vrx *= 0.66;
-            state.vry *= 0.66;
-            state.vs *= 0.62;
+            state.vx *= 0.64;
+            state.vy *= 0.64;
+            state.vrx *= 0.64;
+            state.vry *= 0.64;
+            state.vs *= 0.60;
 
             state.x += state.vx;
             state.y += state.vy;
@@ -355,11 +506,11 @@ function initSpringCards() {
             const rect = card.getBoundingClientRect();
             const px = (event.clientX - rect.left) / rect.width - 0.5;
             const py = (event.clientY - rect.top) / rect.height - 0.5;
-            state.tx = px * 7;
-            state.ty = py * 7;
-            state.trx = py * -4.2;
-            state.try = px * 4.2;
-            state.ts = 1.012;
+            state.tx = px * 8;
+            state.ty = py * 8;
+            state.trx = py * -5;
+            state.try = px * 5;
+            state.ts = 1.014;
         }, { passive: true });
 
         card.addEventListener("pointerleave", () => {
@@ -371,27 +522,25 @@ function initSpringCards() {
         });
 
         card.addEventListener("pointerdown", () => {
-            state.ts = 0.982;
+            state.ts = 0.978;
         });
 
         card.addEventListener("pointerup", () => {
-            state.ts = 1.018;
-            window.setTimeout(() => {
-                state.ts = 1;
-            }, 120);
+            state.ts = 1.022;
+            window.setTimeout(() => { state.ts = 1; }, 120);
         });
 
         animate();
     });
 }
 
+/* ============================================
+   EXPANDABLE FEATURE CARDS
+   ============================================ */
 function initExpandableCards() {
     document.querySelectorAll("[data-expand-card]").forEach((card) => {
         const toggle = card.querySelector(".feature-card-toggle");
-
-        if (!toggle) {
-            return;
-        }
+        if (!toggle) return;
 
         toggle.addEventListener("click", () => {
             const isExpanded = card.classList.toggle("is-expanded");
@@ -400,13 +549,19 @@ function initExpandableCards() {
     });
 }
 
-initCursorFollower();
-initSpringCards();
-initExpandableCards();
+/* ============================================
+   SCROLL REVEAL
+   ============================================ */
+function initScrollReveal() {
+    const revealTargets = document.querySelectorAll(
+        ".section, .feature-card, .install-step, .download-panel, .security-help"
+    );
 
-const revealTargets = document.querySelectorAll(".section, .feature-card, .install-step, .download-panel, .security-help");
+    if (!("IntersectionObserver" in window)) {
+        revealTargets.forEach((target) => target.classList.add("is-visible"));
+        return;
+    }
 
-if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver(
         (entries) => {
             for (const entry of entries) {
@@ -416,40 +571,94 @@ if ("IntersectionObserver" in window) {
                 }
             }
         },
-        { threshold: 0.14 }
+        { threshold: 0.12, rootMargin: "0px 0px -30px 0px" }
     );
 
     revealTargets.forEach((target, index) => {
         target.classList.add("reveal");
-        target.style.transitionDelay = `${Math.min(index * 45, 220)}ms`;
+        target.style.transitionDelay = `${Math.min(index * 40, 200)}ms`;
         observer.observe(target);
     });
-} else {
-    revealTargets.forEach((target) => target.classList.add("is-visible"));
 }
 
-document.querySelectorAll("[data-copy-source]").forEach((button) => {
-    button.addEventListener("click", async () => {
-        const language = localStorage.getItem("onemenu-language") || "zh";
-        const dictionary = translations[language] || translations.zh;
-        const sourceID = button.getAttribute("data-copy-source");
-        const source = sourceID ? document.getElementById(sourceID) : null;
+/* ============================================
+   COPY BUTTON
+   ============================================ */
+function initCopyButtons() {
+    document.querySelectorAll("[data-copy-source]").forEach((button) => {
+        button.addEventListener("click", async () => {
+            const language = localStorage.getItem("onemenu-language") || "zh";
+            const dictionary = translations[language] || translations.zh;
+            const sourceID = button.getAttribute("data-copy-source");
+            const source = sourceID ? document.getElementById(sourceID) : null;
 
-        if (!source) {
+            if (!source) return;
+
+            const originalText = button.textContent;
+            try {
+                await navigator.clipboard.writeText(source.textContent.trim());
+                button.textContent = dictionary.copied;
+                button.classList.add("is-copied");
+                window.setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove("is-copied");
+                }, 1800);
+            } catch {
+                source.focus();
+            }
+        });
+    });
+}
+
+/* ============================================
+   SMOOTH HEADER HIDE/SHOW ON SCROLL
+   ============================================ */
+function initHeaderScroll() {
+    const header = document.querySelector(".site-header");
+    if (!header) return;
+
+    let lastScroll = 0;
+    let hidden = false;
+
+    window.addEventListener("scroll", () => {
+        const current = window.scrollY;
+        if (current < 60) {
+            header.style.transform = "";
+            header.style.opacity = "";
+            hidden = false;
             return;
         }
-
-        const originalText = button.textContent;
-        try {
-            await navigator.clipboard.writeText(source.textContent.trim());
-            button.textContent = dictionary.copied;
-            button.classList.add("is-copied");
-            window.setTimeout(() => {
-                button.textContent = originalText;
-                button.classList.remove("is-copied");
-            }, 1800);
-        } catch {
-            source.focus();
+        if (current > lastScroll + 8 && !hidden) {
+            header.style.transform = "translateY(-120%)";
+            header.style.opacity = "0";
+            header.style.transition = "transform 420ms var(--spring-slow), opacity 320ms ease";
+            hidden = true;
+        } else if (current < lastScroll - 6 && hidden) {
+            header.style.transform = "";
+            header.style.opacity = "";
+            hidden = false;
         }
-    });
-});
+        lastScroll = current;
+    }, { passive: true });
+}
+
+/* ============================================
+   BOOT
+   ============================================ */
+function boot() {
+    initCursorFollower();
+    initBackgroundOrbs();
+    initParticles();
+    initScrollParallax();
+    initSpringCards();
+    initExpandableCards();
+    initScrollReveal();
+    initCopyButtons();
+    initHeaderScroll();
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+} else {
+    boot();
+}
