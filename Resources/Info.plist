@@ -26,5 +26,11 @@
     <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSLocationUsageDescription</key>
+    <string>AiStatus 使用当前位置获取本地天气预报。</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>AiStatus 使用当前位置获取本地天气预报。</string>
+    <key>NSUserNotificationAlertStyle</key>
+    <string>banner</string>
 </dict>
 </plist>

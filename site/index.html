@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AiStatus - macOS 菜单栏 AI 状态灯</title>
-    <meta name="description" content="AiStatus 是一款 macOS 菜单栏工具，用状态灯显示本机 Codex/GPT 和 Claude Code 是否正在处理任务，并提供防休眠开关。">
+    <meta name="description" content="AiStatus 是一款 macOS 菜单栏工具，用独立状态灯显示 Codex/GPT 和 Claude Code 任务，并集中展示天气、硬件、倒计时、系统提醒和防休眠状态。">
     <link rel="icon" href="assets/app-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,8 +41,8 @@
                 <p class="eyebrow" data-i18n="heroEyebrow">macOS menu bar utility</p>
                 <h1 id="hero-title" data-i18n="heroTitle">直视AI任务状态</h1>
                 <p class="hero-lede" data-i18n="heroLede">
-                    AiStatus 用一颗状态灯显示本机 Codex/GPT 与 Claude Code 是否正在工作，
-                    并提供一个可手动开启的防休眠开关。
+                    AiStatus 把 Codex/GPT、Claude、天气、硬件、倒计时、系统提醒和防休眠状态
+                    放进 macOS 顶部状态栏，适合长时间等待 AI 输出的本地工作流。
                 </p>
                 <div class="hero-actions" aria-label="下载操作" data-i18n-attr="aria-label:downloadActionsAria">
                     <a class="download-button" href="downloads/AiStatus-0.1.0.dmg" download data-i18n="heroDownload">下载 macOS 版</a>
@@ -66,18 +66,26 @@
 
             <div class="product-visual" aria-label="AiStatus 产品预览" data-i18n-attr="aria-label:productAria" data-spring-card>
                 <div class="menubar">
-                    <span class="window-dot red"></span>
-                    <span class="window-dot amber"></span>
-                    <span class="window-dot green"></span>
+                    <span class="window-controls" aria-hidden="true">
+                        <span class="window-dot red"></span>
+                        <span class="window-dot amber"></span>
+                        <span class="window-dot green"></span>
+                    </span>
                     <span class="menubar-title">AiStatus</span>
-                    <span class="status-dot active" aria-hidden="true"></span>
+                    <span class="menubar-modules" aria-hidden="true">
+                        <span class="menubar-pill gpt-pill">GPT</span>
+                        <span class="menubar-pill claude-pill">Claude</span>
+                        <span class="menubar-pill">22°</span>
+                        <span class="menubar-pill">内存 63%</span>
+                        <span class="menubar-pill">下班 42分</span>
+                    </span>
                 </div>
                 <div class="status-panel">
                     <div class="panel-head">
                         <img src="assets/app-icon.png" alt="AiStatus 图标" width="72" height="72" data-i18n-attr="alt:iconAlt">
                         <div>
                             <p class="panel-kicker" data-i18n="panelKicker">当前状态</p>
-                            <p class="panel-state" data-i18n="panelState">蓝灯，GPT + Claude 正在使用</p>
+                            <p class="panel-state" data-i18n="panelState">GPT 活跃，硬件与倒计同步展示</p>
                         </div>
                     </div>
                     <div class="provider-grid">
@@ -92,7 +100,28 @@
                             <span class="provider-dot"></span>
                             <div>
                                 <strong>Claude</strong>
-                                <span data-i18n="activeSessionOne">活跃会话 1</span>
+                                <span data-i18n="idleSessionOne">闲置会话 1</span>
+                            </div>
+                        </div>
+                        <div class="provider weather">
+                            <span class="provider-dot"></span>
+                            <div>
+                                <strong data-i18n="weatherModule">天气</strong>
+                                <span data-i18n="weatherPreview">晴 22°C</span>
+                            </div>
+                        </div>
+                        <div class="provider hardware">
+                            <span class="provider-dot"></span>
+                            <div>
+                                <strong data-i18n="hardwareModule">硬件</strong>
+                                <span data-i18n="hardwarePreview">内存 63%</span>
+                            </div>
+                        </div>
+                        <div class="provider countdown">
+                            <span class="provider-dot"></span>
+                            <div>
+                                <strong data-i18n="targetCountdown">目标倒计</strong>
+                                <span data-i18n="targetCountdownPreview">下班 42 分</span>
                             </div>
                         </div>
                         <div class="provider idle">
@@ -104,14 +133,14 @@
                         </div>
                     </div>
                     <div class="session-list">
-                        <p data-i18n="latestEvent">最近事件</p>
+                        <p data-i18n="latestEvent">菜单栏模块</p>
                         <div class="session-row">
-                            <span data-i18n="sampleRunningTitle">整理项目状态和会话标题</span>
+                            <span data-i18n="sampleRunningTitle">Codex/GPT 与 Claude 使用品牌图标独立展示</span>
                             <span data-i18n="running">运行中</span>
                         </div>
                         <div class="session-row muted">
-                            <span data-i18n="sampleEndedTitle">修复防休眠显示器断言</span>
-                            <span data-i18n="ended">已结束</span>
+                            <span data-i18n="sampleEndedTitle">硬件状态可切换 CPU、内存、电池、温度或风扇</span>
+                            <span data-i18n="configurable">可配置</span>
                         </div>
                     </div>
                 </div>
@@ -121,19 +150,19 @@
         <section class="section band" id="features" aria-labelledby="features-title">
             <div class="section-heading">
                 <p class="eyebrow" data-i18n="featuresEyebrow">What it watches</p>
-                <h2 id="features-title" data-i18n="featuresTitle">只做一件事：直视本机 AI 任务状态</h2>
+                <h2 id="features-title" data-i18n="featuresTitle">不止状态灯：把等待 AI 时要看的信息放到同一条菜单栏</h2>
             </div>
             <div class="feature-grid">
                 <article class="feature-card" data-expand-card data-spring-card>
                     <button class="feature-card-toggle" type="button" aria-expanded="false" aria-controls="feature-one-detail">
                         <span class="feature-index">01</span>
                         <span class="expand-glyph" aria-hidden="true"></span>
-                        <h3 data-i18n="featureOneTitle">菜单栏状态灯</h3>
-                        <p data-i18n="featureOneText">蓝灯代表 GPT 或 Claude 正在处理任务，绿灯代表两者都空闲。无需切回终端就能扫一眼确认。</p>
+                        <h3 data-i18n="featureOneTitle">GPT / Claude 独立状态灯</h3>
+                        <p data-i18n="featureOneText">Codex/GPT 和 Claude 各自拥有独立入口，使用品牌图形区分活跃检测状态。</p>
                     </button>
                     <div class="card-expansion" id="feature-one-detail">
                         <div>
-                            <p data-i18n="featureOneDetail">状态灯直接贴在菜单栏里，适合在多个窗口之间切换时保留一个持续可见的任务信号。</p>
+                            <p data-i18n="featureOneDetail">单击查看会话悬浮窗，双击进入对应设置；活跃和闲置会话标题都能快速扫到。</p>
                         </div>
                     </div>
                 </article>
@@ -141,12 +170,12 @@
                     <button class="feature-card-toggle" type="button" aria-expanded="false" aria-controls="feature-two-detail">
                         <span class="feature-index">02</span>
                         <span class="expand-glyph" aria-hidden="true"></span>
-                        <h3 data-i18n="featureTwoTitle">会话标题列表</h3>
-                        <p data-i18n="featureTwoText">读取 Codex 和 Claude Code 的本机会话事件，展示活跃和闲置会话标题，方便快速定位最近任务。</p>
+                        <h3 data-i18n="featureTwoTitle">天气、硬件与防休眠</h3>
+                        <p data-i18n="featureTwoText">天气显示当前温度和图标；硬件可展示 CPU、内存、电池、热状态、温度或风扇。</p>
                     </button>
                     <div class="card-expansion" id="feature-two-detail">
                         <div>
-                            <p data-i18n="featureTwoDetail">列表把 GPT 与 Claude 的状态放在同一处，减少分别打开终端、日志和编辑器确认进度的来回切换。</p>
+                            <p data-i18n="featureTwoDetail">硬件悬浮窗仍保留完整快照；状态栏直接展示哪项指标可以在设置里切换。</p>
                         </div>
                     </div>
                 </article>
@@ -154,12 +183,12 @@
                     <button class="feature-card-toggle" type="button" aria-expanded="false" aria-controls="feature-three-detail">
                         <span class="feature-index">03</span>
                         <span class="expand-glyph" aria-hidden="true"></span>
-                        <h3 data-i18n="featureThreeTitle">防休眠开关</h3>
-                        <p data-i18n="featureThreeText">需要长时间等待模型输出时，可手动开启保持活跃，阻止系统和显示器因空闲进入睡眠。</p>
+                        <h3 data-i18n="featureThreeTitle">倒计时与目标倒计</h3>
+                        <p data-i18n="featureThreeText">支持秒/分钟倒计、临近提醒色，以及每天目标时间的分钟倒计。</p>
                     </button>
                     <div class="card-expansion" id="feature-three-detail">
                         <div>
-                            <p data-i18n="featureThreeDetail">防休眠使用 macOS 电源断言，只有用户手动开启时才生效，适合长时间任务和外接显示器场景。</p>
+                            <p data-i18n="featureThreeDetail">目标倒计可以配置目标名称、过点处理、状态栏背景色、文字粗细和文字颜色。</p>
                         </div>
                     </div>
                 </article>
@@ -167,12 +196,12 @@
                     <button class="feature-card-toggle" type="button" aria-expanded="false" aria-controls="feature-four-detail">
                         <span class="feature-index">04</span>
                         <span class="expand-glyph" aria-hidden="true"></span>
-                        <h3 data-i18n="featureFourTitle">结束通知</h3>
-                        <p data-i18n="featureFourText">当活跃会话变为空闲时，桌面通知会提示哪个会话刚结束，减少反复查看窗口的打断。</p>
+                        <h3 data-i18n="featureFourTitle">通知、邮件与系统提醒</h3>
+                        <p data-i18n="featureFourText">会话结束可发桌面通知；所有 AI 工作结束后可发邮件，也能注册单次或每日系统提醒。</p>
                     </button>
                     <div class="card-expansion" id="feature-four-detail">
                         <div>
-                            <p data-i18n="featureFourDetail">通知只在状态从运行切到空闲时出现，让你能继续做别的事，同时知道哪个 AI 任务刚刚结束。</p>
+                            <p data-i18n="featureFourDetail">提醒页显示系统注册状态并支持测试提醒，方便检查 macOS 通知权限和专注模式影响。</p>
                         </div>
                     </div>
                 </article>
@@ -186,12 +215,13 @@
             </div>
             <div class="privacy-copy">
                 <p data-i18n="privacyText">
-                    AiStatus 只读取运行状态和用于展示的会话标题。它不复制完整会话正文，也不需要远程账号。
-                    当前版本面向本机使用场景，所有状态判断都在你的 Mac 上完成。
+                    AiStatus 只读取运行状态、会话标题和系统状态快照。它不复制完整会话正文，也不需要远程账号。
+                    天气只用经纬度请求预报；AI 状态判断都在你的 Mac 上完成。
                 </p>
                 <ul class="privacy-list">
                     <li><span></span><span data-i18n-html="privacyItemCodex">读取 <code>~/.codex/sessions</code> 的任务事件</span></li>
                     <li><span></span><span data-i18n-html="privacyItemClaude">读取 <code>~/.claude/projects</code> 的 Claude Code 事件</span></li>
+                    <li><span></span><span data-i18n="privacyItemWeather">天气预报只发送经纬度，不上传会话内容</span></li>
                     <li><span></span><span data-i18n="privacyItemSleep">防休眠功能必须由用户手动开启</span></li>
                 </ul>
             </div>

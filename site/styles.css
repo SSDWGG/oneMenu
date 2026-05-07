@@ -490,13 +490,23 @@ html[lang="en"] h2 {
 .menubar {
     position: relative;
     display: grid;
-    grid-template-columns: 12px 12px 12px 1fr 20px;
-    gap: 8px;
+    grid-template-columns: auto minmax(74px, 1fr) minmax(0, auto);
+    gap: 12px;
     align-items: center;
     min-height: 46px;
-    padding: 0 16px;
+    padding: 8px 12px;
     background: rgba(5, 9, 7, 0.58);
     color: var(--ink);
+}
+
+.window-controls,
+.menubar-modules {
+    display: flex;
+    align-items: center;
+}
+
+.window-controls {
+    gap: 7px;
 }
 
 .window-dot {
@@ -518,9 +528,63 @@ html[lang="en"] h2 {
 }
 
 .menubar-title {
-    justify-self: center;
+    min-width: 0;
     color: var(--ink-muted);
     font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.menubar-modules {
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.menubar-pill {
+    display: inline-flex;
+    max-width: 100%;
+    min-height: 26px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 9px;
+    border: 1px solid var(--glass-line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.09);
+    color: var(--ink);
+    font-size: 0.76rem;
+    font-weight: 800;
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.menubar-pill::before {
+    width: 6px;
+    height: 6px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: var(--mint);
+    content: "";
+    box-shadow: 0 0 12px rgba(126, 224, 195, 0.48);
+}
+
+.gpt-pill {
+    border-color: rgba(126, 224, 195, 0.34);
+    background: rgba(126, 224, 195, 0.12);
+}
+
+.claude-pill {
+    border-color: rgba(255, 139, 95, 0.38);
+    background: rgba(255, 139, 95, 0.14);
+}
+
+.claude-pill::before {
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(255, 139, 95, 0.52);
 }
 
 .status-dot,
@@ -601,6 +665,18 @@ html[lang="en"] h2 {
 
 .provider.idle .provider-dot {
     background: var(--green);
+}
+
+.provider.weather .provider-dot {
+    background: var(--amber);
+}
+
+.provider.hardware .provider-dot {
+    background: var(--mint);
+}
+
+.provider.countdown .provider-dot {
+    background: var(--accent);
 }
 
 .provider strong,
@@ -1204,6 +1280,15 @@ html[lang="en"] h2 {
 
     .release-strip {
         display: grid;
+    }
+
+    .menubar {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .menubar-modules {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
     }
 
     .release-strip div + div {
