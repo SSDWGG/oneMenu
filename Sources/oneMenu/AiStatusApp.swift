@@ -179,7 +179,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             button.imagePosition = .imageOnly
             button.imageScaling = .scaleProportionallyDown
             button.wantsLayer = true
-            button.layer?.cornerRadius = 4
+            button.layer?.cornerRadius = 12
             button.layer?.masksToBounds = true
             button.toolTip = "Codex/GPT：检测中"
             configureStatusButton(button, module: .gpt)
@@ -189,7 +189,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             claudeButton.imagePosition = .imageOnly
             claudeButton.imageScaling = .scaleProportionallyDown
             claudeButton.wantsLayer = true
-            claudeButton.layer?.cornerRadius = 4
+            claudeButton.layer?.cornerRadius = 12
             claudeButton.layer?.masksToBounds = true
             claudeButton.toolTip = "Claude：检测中"
             configureStatusButton(claudeButton, module: .claude)
@@ -3159,7 +3159,12 @@ private enum BrandIconImage {
         NSColor.clear.setFill()
         bounds.fill()
 
-        drawProviderIcon(provider, in: bounds.insetBy(dx: 2, dy: 2))
+        if let png = loadPNG(for: provider) {
+            let inset: CGFloat = 1.5
+            png.draw(in: bounds.insetBy(dx: inset, dy: inset), from: .zero, operation: .sourceOver, fraction: 1)
+        } else {
+            drawFallbackIcon(provider, in: bounds)
+        }
 
         image.unlockFocus()
         image.isTemplate = false
@@ -3175,27 +3180,32 @@ private enum BrandIconImage {
         NSColor.clear.setFill()
         bounds.fill()
 
-        drawProviderIcon(provider, in: bounds.insetBy(dx: 1.5, dy: 1.5))
+        if let png = loadPNG(for: provider) {
+            let inset: CGFloat = 1
+            png.draw(in: bounds.insetBy(dx: inset, dy: inset), from: .zero, operation: .sourceOver, fraction: 1)
+        } else {
+            drawFallbackIcon(provider, in: bounds)
+        }
 
         image.unlockFocus()
         image.isTemplate = false
         return image
     }
 
-    private static func drawProviderIcon(_ provider: StatusProviderIcon, in rect: NSRect) {
-        guard let icon = SVGIconLoader.icon(for: provider) else {
-            drawFallbackIcon(provider, in: rect)
-            return
+    private static func loadPNG(for provider: StatusProviderIcon) -> NSImage? {
+        let fileName = "\(provider.fileName).png"
+        let fileManager = FileManager.default
+        let cwd = URL(fileURLWithPath: fileManager.currentDirectoryPath)
+        let candidates: [URL?] = [
+            Bundle.main.url(forResource: provider.fileName, withExtension: "png"),
+            Bundle.main.resourceURL?.appendingPathComponent(fileName),
+            cwd.appendingPathComponent(fileName),
+            cwd.appendingPathComponent("Resources").appendingPathComponent(fileName)
+        ]
+        guard let url = candidates.compactMap({ $0 }).first(where: { fileManager.fileExists(atPath: $0.path) }) else {
+            return nil
         }
-
-        for shape in icon.shapes {
-            guard let path = SVGPathParser.path(from: shape.pathData)?.copy() as? NSBezierPath else {
-                continue
-            }
-            let fillColor = shape.fillColor ?? (shape.usesCurrentColor ? provider.currentColor : icon.defaultFillColor)
-            fillColor.setFill()
-            SVGPathParser.draw(path, viewBox: icon.viewBox, in: rect)
-        }
+        return NSImage(contentsOf: url)
     }
 
     private static func drawFallbackIcon(_ provider: StatusProviderIcon, in rect: NSRect) {
@@ -3209,554 +3219,5 @@ private enum BrandIconImage {
             .paragraphStyle: paragraphStyle
         ]
         provider.fallbackTitle.draw(in: textRect, withAttributes: attributes)
-    }
-}
-
-private struct SVGIcon {
-    let viewBox: CGRect
-    let defaultFillColor: NSColor
-    let shapes: [SVGIconShape]
-}
-
-private struct SVGIconShape {
-    let pathData: String
-    let fillColor: NSColor?
-    let usesCurrentColor: Bool
-}
-
-private enum SVGIconLoader {
-    private static var cache: [StatusProviderIcon: SVGIcon] = [:]
-    private static let lock = NSLock()
-
-    static func icon(for provider: StatusProviderIcon) -> SVGIcon? {
-        lock.lock()
-        if let icon = cache[provider] {
-            lock.unlock()
-            return icon
-        }
-        lock.unlock()
-
-        guard let url = iconURL(for: provider),
-              let data = try? String(contentsOf: url, encoding: .utf8),
-              let icon = parse(data, currentColor: provider.currentColor)
-        else {
-            return nil
-        }
-
-        lock.lock()
-        cache[provider] = icon
-        lock.unlock()
-        return icon
-    }
-
-    private static func iconURL(for provider: StatusProviderIcon) -> URL? {
-        let resourceName = provider.fileName
-        let fileName = "\(resourceName).svg"
-        let fileManager = FileManager.default
-        let cwd = URL(fileURLWithPath: fileManager.currentDirectoryPath)
-        let candidates: [URL?] = [
-            Bundle.main.url(forResource: resourceName, withExtension: "svg"),
-            Bundle.main.resourceURL?.appendingPathComponent(fileName),
-            cwd.appendingPathComponent(fileName),
-            cwd.appendingPathComponent("Resources").appendingPathComponent(fileName),
-            Bundle.main.executableURL?.deletingLastPathComponent().appendingPathComponent(fileName),
-            Bundle.main.executableURL?.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent(fileName)
-        ]
-
-        return candidates.compactMap { $0 }.first { fileManager.fileExists(atPath: $0.path) }
-    }
-
-    private static func parse(_ svg: String, currentColor: NSColor) -> SVGIcon? {
-        guard let viewBox = attribute("viewBox", in: svg).flatMap(parseViewBox) else {
-            return nil
-        }
-
-        let rootFill = attribute("fill", in: svg).flatMap { fillColor($0, currentColor: currentColor) }
-        let rootUsesCurrentColor = attribute("fill", in: svg) == "currentColor"
-        let pathTags = matches(pattern: #"<path\b[^>]*>"#, in: svg)
-        let shapes = pathTags.compactMap { tag -> SVGIconShape? in
-            guard let pathData = attribute("d", in: tag) else {
-                return nil
-            }
-            let fillValue = attribute("fill", in: tag)
-            if fillValue == "none" {
-                return nil
-            }
-            return SVGIconShape(
-                pathData: pathData,
-                fillColor: fillValue.flatMap { fillColor($0, currentColor: currentColor) } ?? rootFill,
-                usesCurrentColor: fillValue == "currentColor" || (fillValue == nil && rootUsesCurrentColor)
-            )
-        }
-
-        guard !shapes.isEmpty else {
-            return nil
-        }
-        return SVGIcon(viewBox: viewBox, defaultFillColor: rootFill ?? currentColor, shapes: shapes)
-    }
-
-    private static func parseViewBox(_ value: String) -> CGRect? {
-        let values = value
-            .split { $0 == " " || $0 == "," || $0 == "\n" || $0 == "\t" }
-            .compactMap { Double($0) }
-        guard values.count == 4 else {
-            return nil
-        }
-        return CGRect(x: values[0], y: values[1], width: values[2], height: values[3])
-    }
-
-    private static func attribute(_ name: String, in text: String) -> String? {
-        let escapedName = NSRegularExpression.escapedPattern(for: name)
-        let pattern = #"\b\#(escapedName)\s*=\s*["']([^"']+)["']"#
-        guard let regex = try? NSRegularExpression(pattern: pattern),
-              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-              let range = Range(match.range(at: 1), in: text)
-        else {
-            return nil
-        }
-        return String(text[range])
-    }
-
-    private static func matches(pattern: String, in text: String) -> [String] {
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
-            return []
-        }
-        let range = NSRange(text.startIndex..., in: text)
-        return regex.matches(in: text, range: range).compactMap { match in
-            Range(match.range, in: text).map { String(text[$0]) }
-        }
-    }
-
-    private static func fillColor(_ value: String, currentColor: NSColor) -> NSColor? {
-        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        if normalized == "currentColor" {
-            return currentColor
-        }
-        if normalized == "none" {
-            return nil
-        }
-        if normalized.hasPrefix("#") {
-            return color(hex: String(normalized.dropFirst()))
-        }
-
-        switch normalized.lowercased() {
-        case "black":
-            return .black
-        case "white":
-            return .white
-        default:
-            return nil
-        }
-    }
-
-    private static func color(hex: String) -> NSColor? {
-        let scanner = Scanner(string: hex)
-        var value: UInt64 = 0
-        guard scanner.scanHexInt64(&value) else {
-            return nil
-        }
-
-        let red: CGFloat
-        let green: CGFloat
-        let blue: CGFloat
-        switch hex.count {
-        case 3:
-            red = CGFloat((value >> 8) & 0xF) / 15
-            green = CGFloat((value >> 4) & 0xF) / 15
-            blue = CGFloat(value & 0xF) / 15
-        case 6:
-            red = CGFloat((value >> 16) & 0xFF) / 255
-            green = CGFloat((value >> 8) & 0xFF) / 255
-            blue = CGFloat(value & 0xFF) / 255
-        default:
-            return nil
-        }
-        return NSColor(calibratedRed: red, green: green, blue: blue, alpha: 1)
-    }
-}
-
-private enum SVGPathParser {
-    private enum Token {
-        case command(Character)
-        case number(CGFloat)
-    }
-
-    static func path(from data: String) -> NSBezierPath? {
-        var parser = Parser(tokens: tokenize(data))
-        return parser.parse()
-    }
-
-    static func draw(_ path: NSBezierPath, viewBox: CGRect, in rect: NSRect) {
-        let scale = min(rect.width / viewBox.width, rect.height / viewBox.height)
-        let drawSize = NSSize(width: viewBox.width * scale, height: viewBox.height * scale)
-        let drawRect = NSRect(
-            x: rect.midX - drawSize.width / 2,
-            y: rect.midY - drawSize.height / 2,
-            width: drawSize.width,
-            height: drawSize.height
-        )
-        let transform = AffineTransform(
-            m11: scale,
-            m12: 0,
-            m21: 0,
-            m22: -scale,
-            tX: drawRect.minX - viewBox.minX * scale,
-            tY: drawRect.maxY + viewBox.minY * scale
-        )
-        path.transform(using: transform)
-        path.fill()
-    }
-
-    private static func tokenize(_ data: String) -> [Token] {
-        var tokens: [Token] = []
-        var number = ""
-
-        func flushNumber() {
-            guard !number.isEmpty else {
-                return
-            }
-            if let value = Double(number) {
-                tokens.append(.number(CGFloat(value)))
-            }
-            number = ""
-        }
-
-        for scalar in data.unicodeScalars {
-            if isPathCommand(scalar) {
-                flushNumber()
-                tokens.append(.command(Character(scalar)))
-            } else if isNumberSeparator(scalar) {
-                flushNumber()
-            } else if scalar == "-" || scalar == "+" {
-                if !number.isEmpty, !number.hasSuffix("e"), !number.hasSuffix("E") {
-                    flushNumber()
-                }
-                number.append(Character(scalar))
-            } else {
-                number.append(Character(scalar))
-            }
-        }
-        flushNumber()
-        return tokens
-    }
-
-    private static func isPathCommand(_ scalar: UnicodeScalar) -> Bool {
-        let value = scalar.value
-        guard (65...90).contains(value) || (97...122).contains(value) else {
-            return false
-        }
-        return scalar != "e" && scalar != "E"
-    }
-
-    private static func isNumberSeparator(_ scalar: UnicodeScalar) -> Bool {
-        scalar == "," || scalar == " " || scalar == "\n" || scalar == "\t" || scalar == "\r"
-    }
-
-    private struct Parser {
-        var tokens: [Token]
-        var index = 0
-        var activeCommand: Character?
-        var current = NSPoint.zero
-        var subpathStart = NSPoint.zero
-
-        mutating func parse() -> NSBezierPath? {
-            let path = NSBezierPath()
-            while index < tokens.count {
-                if case let .command(command) = tokens[index] {
-                    activeCommand = command
-                    index += 1
-                }
-
-                guard let command = activeCommand else {
-                    return nil
-                }
-
-                let relative = String(command) == String(command).lowercased()
-                switch Character(String(command).lowercased()) {
-                case "m":
-                    parseMove(path: path, relative: relative)
-                case "l":
-                    parseLine(path: path, relative: relative)
-                case "h":
-                    parseHorizontal(path: path, relative: relative)
-                case "v":
-                    parseVertical(path: path, relative: relative)
-                case "c":
-                    parseCubic(path: path, relative: relative)
-                case "q":
-                    parseQuadratic(path: path, relative: relative)
-                case "a":
-                    parseArc(path: path, relative: relative)
-                case "z":
-                    path.close()
-                    current = subpathStart
-                    activeCommand = nil
-                default:
-                    skipUnsupportedCommand()
-                }
-            }
-            return path
-        }
-
-        private mutating func parseMove(path: NSBezierPath, relative: Bool) {
-            guard let point = readPoint(relative: relative) else {
-                return
-            }
-            path.move(to: point)
-            current = point
-            subpathStart = point
-
-            while hasNumber, let linePoint = readPoint(relative: relative) {
-                path.line(to: linePoint)
-                current = linePoint
-            }
-        }
-
-        private mutating func parseLine(path: NSBezierPath, relative: Bool) {
-            while hasNumber, let point = readPoint(relative: relative) {
-                path.line(to: point)
-                current = point
-            }
-        }
-
-        private mutating func parseHorizontal(path: NSBezierPath, relative: Bool) {
-            while hasNumber, let x = readNumber() {
-                let next = NSPoint(x: relative ? current.x + x : x, y: current.y)
-                path.line(to: next)
-                current = next
-            }
-        }
-
-        private mutating func parseVertical(path: NSBezierPath, relative: Bool) {
-            while hasNumber, let y = readNumber() {
-                let next = NSPoint(x: current.x, y: relative ? current.y + y : y)
-                path.line(to: next)
-                current = next
-            }
-        }
-
-        private mutating func parseCubic(path: NSBezierPath, relative: Bool) {
-            while hasNumber,
-                  let control1 = readPoint(relative: relative),
-                  let control2 = readPoint(relative: relative),
-                  let end = readPoint(relative: relative) {
-                path.curve(to: end, controlPoint1: control1, controlPoint2: control2)
-                current = end
-            }
-        }
-
-        private mutating func parseQuadratic(path: NSBezierPath, relative: Bool) {
-            while hasNumber,
-                  let control = readPoint(relative: relative),
-                  let end = readPoint(relative: relative) {
-                let control1 = NSPoint(
-                    x: current.x + (control.x - current.x) * 2 / 3,
-                    y: current.y + (control.y - current.y) * 2 / 3
-                )
-                let control2 = NSPoint(
-                    x: end.x + (control.x - end.x) * 2 / 3,
-                    y: end.y + (control.y - end.y) * 2 / 3
-                )
-                path.curve(to: end, controlPoint1: control1, controlPoint2: control2)
-                current = end
-            }
-        }
-
-        private mutating func parseArc(path: NSBezierPath, relative: Bool) {
-            while hasNumber,
-                  let radiusX = readNumber(),
-                  let radiusY = readNumber(),
-                  let rotation = readNumber(),
-                  let largeArcFlag = readNumber(),
-                  let sweepFlag = readNumber(),
-                  let rawEnd = readRawPoint() {
-                let end = relative
-                    ? NSPoint(x: current.x + rawEnd.x, y: current.y + rawEnd.y)
-                    : rawEnd
-                appendArc(
-                    to: path,
-                    from: current,
-                    to: end,
-                    radiusX: radiusX,
-                    radiusY: radiusY,
-                    rotation: rotation,
-                    largeArc: largeArcFlag != 0,
-                    sweep: sweepFlag != 0
-                )
-                current = end
-            }
-        }
-
-        private mutating func skipUnsupportedCommand() {
-            while hasNumber {
-                _ = readNumber()
-            }
-        }
-
-        private var hasNumber: Bool {
-            guard index < tokens.count else {
-                return false
-            }
-            if case .number = tokens[index] {
-                return true
-            }
-            return false
-        }
-
-        private mutating func readNumber() -> CGFloat? {
-            guard index < tokens.count,
-                  case let .number(value) = tokens[index]
-            else {
-                return nil
-            }
-            index += 1
-            return value
-        }
-
-        private mutating func readRawPoint() -> NSPoint? {
-            guard let x = readNumber(), let y = readNumber() else {
-                return nil
-            }
-            return NSPoint(x: x, y: y)
-        }
-
-        private mutating func readPoint(relative: Bool) -> NSPoint? {
-            guard let point = readRawPoint() else {
-                return nil
-            }
-            if relative {
-                return NSPoint(x: current.x + point.x, y: current.y + point.y)
-            }
-            return point
-        }
-
-        private func appendArc(
-            to path: NSBezierPath,
-            from start: NSPoint,
-            to end: NSPoint,
-            radiusX rawRadiusX: CGFloat,
-            radiusY rawRadiusY: CGFloat,
-            rotation: CGFloat,
-            largeArc: Bool,
-            sweep: Bool
-        ) {
-            var rx = abs(Double(rawRadiusX))
-            var ry = abs(Double(rawRadiusY))
-            guard rx > 0, ry > 0, start != end else {
-                path.line(to: end)
-                return
-            }
-
-            let x1 = Double(start.x)
-            let y1 = Double(start.y)
-            let x2 = Double(end.x)
-            let y2 = Double(end.y)
-            let phi = Double(rotation) * Double.pi / 180
-            let cosPhi = cos(phi)
-            let sinPhi = sin(phi)
-            let dx = (x1 - x2) / 2
-            let dy = (y1 - y2) / 2
-            let x1Prime = cosPhi * dx + sinPhi * dy
-            let y1Prime = -sinPhi * dx + cosPhi * dy
-            let radiusScale = (x1Prime * x1Prime) / (rx * rx) + (y1Prime * y1Prime) / (ry * ry)
-
-            if radiusScale > 1 {
-                let scale = sqrt(radiusScale)
-                rx *= scale
-                ry *= scale
-            }
-
-            let rxSquared = rx * rx
-            let rySquared = ry * ry
-            let x1PrimeSquared = x1Prime * x1Prime
-            let y1PrimeSquared = y1Prime * y1Prime
-            let denominator = rxSquared * y1PrimeSquared + rySquared * x1PrimeSquared
-
-            guard denominator > 0 else {
-                path.line(to: end)
-                return
-            }
-
-            let sign = largeArc == sweep ? -1.0 : 1.0
-            let numerator = max(0, rxSquared * rySquared - rxSquared * y1PrimeSquared - rySquared * x1PrimeSquared)
-            let coefficient = sign * sqrt(numerator / denominator)
-            let centerXPrime = coefficient * (rx * y1Prime / ry)
-            let centerYPrime = coefficient * (-ry * x1Prime / rx)
-            let centerX = cosPhi * centerXPrime - sinPhi * centerYPrime + (x1 + x2) / 2
-            let centerY = sinPhi * centerXPrime + cosPhi * centerYPrime + (y1 + y2) / 2
-            let vector1 = ((x1Prime - centerXPrime) / rx, (y1Prime - centerYPrime) / ry)
-            let vector2 = ((-x1Prime - centerXPrime) / rx, (-y1Prime - centerYPrime) / ry)
-            let startAngle = angle(from: (1, 0), to: vector1)
-            var angleDelta = angle(from: vector1, to: vector2)
-
-            if !sweep, angleDelta > 0 {
-                angleDelta -= Double.pi * 2
-            } else if sweep, angleDelta < 0 {
-                angleDelta += Double.pi * 2
-            }
-
-            let segmentCount = max(1, Int(ceil(abs(angleDelta) / (Double.pi / 2))))
-            let segmentDelta = angleDelta / Double(segmentCount)
-
-            for segmentIndex in 0..<segmentCount {
-                let theta1 = startAngle + Double(segmentIndex) * segmentDelta
-                let theta2 = theta1 + segmentDelta
-                appendArcSegment(
-                    to: path,
-                    centerX: centerX,
-                    centerY: centerY,
-                    radiusX: rx,
-                    radiusY: ry,
-                    cosPhi: cosPhi,
-                    sinPhi: sinPhi,
-                    startAngle: theta1,
-                    endAngle: theta2
-                )
-            }
-        }
-
-        private func appendArcSegment(
-            to path: NSBezierPath,
-            centerX: Double,
-            centerY: Double,
-            radiusX: Double,
-            radiusY: Double,
-            cosPhi: Double,
-            sinPhi: Double,
-            startAngle: Double,
-            endAngle: Double
-        ) {
-            let alpha = 4 / 3 * tan((endAngle - startAngle) / 4)
-            let startUnit = (cos(startAngle), sin(startAngle))
-            let endUnit = (cos(endAngle), sin(endAngle))
-            let control1Unit = (startUnit.0 - alpha * startUnit.1, startUnit.1 + alpha * startUnit.0)
-            let control2Unit = (endUnit.0 + alpha * endUnit.1, endUnit.1 - alpha * endUnit.0)
-
-            path.curve(
-                to: transformArcPoint(endUnit, centerX: centerX, centerY: centerY, radiusX: radiusX, radiusY: radiusY, cosPhi: cosPhi, sinPhi: sinPhi),
-                controlPoint1: transformArcPoint(control1Unit, centerX: centerX, centerY: centerY, radiusX: radiusX, radiusY: radiusY, cosPhi: cosPhi, sinPhi: sinPhi),
-                controlPoint2: transformArcPoint(control2Unit, centerX: centerX, centerY: centerY, radiusX: radiusX, radiusY: radiusY, cosPhi: cosPhi, sinPhi: sinPhi)
-            )
-        }
-
-        private func transformArcPoint(
-            _ point: (Double, Double),
-            centerX: Double,
-            centerY: Double,
-            radiusX: Double,
-            radiusY: Double,
-            cosPhi: Double,
-            sinPhi: Double
-        ) -> NSPoint {
-            let x = centerX + radiusX * point.0 * cosPhi - radiusY * point.1 * sinPhi
-            let y = centerY + radiusX * point.0 * sinPhi + radiusY * point.1 * cosPhi
-            return NSPoint(x: CGFloat(x), y: CGFloat(y))
-        }
-
-        private func angle(from start: (Double, Double), to end: (Double, Double)) -> Double {
-            let dot = start.0 * end.0 + start.1 * end.1
-            let determinant = start.0 * end.1 - start.1 * end.0
-            return atan2(determinant, dot)
-        }
     }
 }
