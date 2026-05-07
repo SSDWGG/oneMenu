@@ -3142,10 +3142,6 @@ private enum StatusProviderIcon {
 }
 
 private enum BrandIconImage {
-    private static var isDarkAppearance: Bool {
-        NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-    }
-
     static func statusBarIcon(for provider: StatusProviderIcon, size: CGFloat = 20) -> NSImage {
         let image = NSImage(size: NSSize(width: size, height: size))
         image.lockFocus()
@@ -3162,7 +3158,7 @@ private enum BrandIconImage {
         }
 
         image.unlockFocus()
-        image.isTemplate = false
+        image.isTemplate = true
         return image
     }
 
@@ -3183,13 +3179,12 @@ private enum BrandIconImage {
         }
 
         image.unlockFocus()
-        image.isTemplate = false
+        image.isTemplate = true
         return image
     }
 
     private static func loadPNG(for provider: StatusProviderIcon) -> NSImage? {
-        let suffix = isDarkAppearance ? "-white" : ""
-        let resourceName = "\(provider.baseName)\(suffix)"
+        let resourceName = provider.baseName
         let fileName = "\(resourceName).png"
         let fileManager = FileManager.default
         let cwd = URL(fileURLWithPath: fileManager.currentDirectoryPath)
