@@ -1301,10 +1301,10 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             button.layer?.backgroundColor = NSColor.clear.cgColor
         }
 
-        let foregroundColor = textColor.color ?? background.foregroundColor
+        let foregroundColor = textColor.color ?? background.foregroundColor ?? NSColor.labelColor
         button.attributedTitle = NSAttributedString(string: title, attributes: [
             .font: font,
-            .foregroundColor: foregroundColor as Any
+            .foregroundColor: foregroundColor
         ])
     }
 
