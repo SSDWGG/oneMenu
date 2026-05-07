@@ -66,8 +66,8 @@
                     汇聚到一条菜单栏。支持 macOS 和 Windows，让你在等待 AI 输出时保持对系统的全面感知。
                 </p>
                 <div class="hero-actions" aria-label="下载操作" data-i18n-attr="aria-label:downloadActionsAria">
-                    <a class="download-button" href="downloads/oneMenu-0.1.2.dmg" download data-i18n="heroDownload">下载 macOS 版</a>
-                    <a class="checksum-link" href="downloads/oneMenu-0.1.2.dmg.sha256" data-i18n="heroChecksum">查看 SHA-256</a>
+                    <a class="download-button" href="downloads/oneMenu-0.1.2.dmg" download>🏔️ 下载 macOS 版</a>
+                    <a class="download-button" href="https://github.com/SSDWGG/oneMenu/releases/latest" target="_blank" style="background:linear-gradient(135deg,#2672EC,#0063B1)">🪟 下载 Windows 版</a>
                 </div>
                 <dl class="release-strip" aria-label="版本信息" data-i18n-attr="aria-label:releaseAria">
                     <div>
@@ -76,11 +76,11 @@
                     </div>
                     <div>
                         <dt data-i18n="releaseFormat">格式</dt>
-                        <dd>DMG</dd>
+                        <dd>DMG / ZIP</dd>
                     </div>
                     <div>
-                        <dt data-i18n="releaseSize">大小</dt>
-                        <dd data-i18n="releaseSizeValue">约 1.4 MB</dd>
+                        <dt data-i18n="releaseSize">平台</dt>
+                        <dd>macOS + Windows</dd>
                     </div>
                 </dl>
             </div>
@@ -278,26 +278,26 @@
         <section class="section install" id="install" aria-labelledby="install-title">
             <div class="section-heading">
                 <p class="eyebrow" data-i18n="installEyebrow">Install</p>
-                <h2 id="install-title" data-i18n="installTitle">Mac 用户：下载 DMG，Windows 用户：克隆并构建。</h2>
+                <h2 id="install-title" data-i18n="installTitle">一条菜单栏，两个平台。</h2>
             </div>
             <div class="install-grid">
                 <article class="install-step" data-spring-card>
                     <span>🏔️</span>
-                    <h3 data-i18n="installStepOneTitle">macOS 下载</h3>
-                    <p data-i18n="installStepOneText">获取当前版本的 DMG 安装包。</p>
-                    <a href="downloads/oneMenu-0.1.2.dmg" download data-i18n="installStepOneLink">下载 oneMenu-0.1.2.dmg</a>
+                    <h3>macOS</h3>
+                    <p>下载 DMG，拖入 Applications 即可。</p>
+                    <a href="downloads/oneMenu-0.1.2.dmg" download>下载 oneMenu-0.1.2.dmg</a>
                 </article>
                 <article class="install-step" data-spring-card>
                     <span>🪟</span>
-                    <h3>Windows 构建</h3>
-                    <p>克隆仓库，使用 .NET 8 SDK 构建 Windows 客户端。</p>
-                    <a href="https://github.com/SSDWGG/oneMenu">GitHub: SSHdwgg/oneMenu</a>
-                    <code style="display:block;margin-top:8px;font-size:11px;opacity:.7">cd win && dotnet build && dotnet run --project OneMenu.App</code>
+                    <h3>Windows</h3>
+                    <p>下载 zip，解压后运行 OneMenu.App.exe。</p>
+                    <a href="https://github.com/SSDWGG/oneMenu/releases">前往 GitHub Releases 下载</a>
                 </article>
                 <article class="install-step" data-spring-card>
-                    <span>2</span>
-                    <h3 data-i18n="installStepTwoTitle">安装</h3>
-                    <p data-i18n="installStepTwoText">打开 DMG，把 oneMenu 拖到 Applications。</p>
+                    <span>⚙️</span>
+                    <h3>开发者构建</h3>
+                    <p>克隆仓库，使用 .NET 8 SDK 自行构建。</p>
+                    <a href="https://github.com/SSDWGG/oneMenu">GitHub: SSDWGG/oneMenu</a>
                 </article>
             </div>
 
