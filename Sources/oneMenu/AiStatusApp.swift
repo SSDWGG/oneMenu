@@ -178,6 +178,9 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         if let button = statusItem.button {
             button.imagePosition = .imageOnly
             button.imageScaling = .scaleProportionallyDown
+            button.wantsLayer = true
+            button.layer?.cornerRadius = 4
+            button.layer?.masksToBounds = true
             button.toolTip = "Codex/GPT：检测中"
             configureStatusButton(button, module: .gpt)
         }
@@ -185,6 +188,9 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         if let claudeButton = claudeStatusItem.button {
             claudeButton.imagePosition = .imageOnly
             claudeButton.imageScaling = .scaleProportionallyDown
+            claudeButton.wantsLayer = true
+            claudeButton.layer?.cornerRadius = 4
+            claudeButton.layer?.masksToBounds = true
             claudeButton.toolTip = "Claude：检测中"
             configureStatusButton(claudeButton, module: .claude)
         }
@@ -748,8 +754,6 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             claudeSnapshot.isThinking ? "Claude" : nil
         ].compactMap { $0 }
         let isActive = !activeNames.isEmpty
-        let gptColor = gptSnapshot.isThinking ? colorPreferences.runningColor : colorPreferences.idleColor
-        let claudeColor = claudeSnapshot.isThinking ? colorPreferences.runningColor : colorPreferences.idleColor
         let stateText = isActive
             ? "\(colorPreferences.runningColorTitle)灯，\(activeNames.joined(separator: " + ")) 正在使用"
             : "\(colorPreferences.idleColorTitle)灯，GPT / Claude 空闲"
@@ -761,13 +765,21 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             : "\(colorPreferences.idleColorTitle)灯，Claude 空闲"
 
         if let button = statusItem.button {
-            button.image = StatusDotImage.make(color: gptColor, provider: .gpt, isActive: gptSnapshot.isThinking)
+            let gptIcon = BrandIconImage.statusBarIcon(for: .gpt)
+            button.image = gptIcon
+            button.layer?.backgroundColor = gptSnapshot.isThinking
+                ? colorPreferences.runningColor.withAlphaComponent(0.35).cgColor
+                : colorPreferences.idleColor.withAlphaComponent(0.12).cgColor
             button.toolTip = "Codex/GPT：\(gptStateText)"
             button.setAccessibilityLabel("Codex/GPT \(gptStateText)")
         }
 
         if let button = claudeStatusItem.button {
-            button.image = StatusDotImage.make(color: claudeColor, provider: .claude, isActive: claudeSnapshot.isThinking)
+            let claudeIcon = BrandIconImage.statusBarIcon(for: .claude)
+            button.image = claudeIcon
+            button.layer?.backgroundColor = claudeSnapshot.isThinking
+                ? colorPreferences.runningColor.withAlphaComponent(0.35).cgColor
+                : colorPreferences.idleColor.withAlphaComponent(0.12).cgColor
             button.toolTip = "Claude：\(claudeStateText)"
             button.setAccessibilityLabel("Claude \(claudeStateText)")
         }
@@ -776,12 +788,14 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
 
         // GPT: state line doubles as active sessions menu
         gptStateMenuItem.title = providerStateTitle(name: "GPT", isThinking: gptSnapshot.isThinking, activeCount: gptSnapshot.activeSessionCount)
+        gptStateMenuItem.image = BrandIconImage.menuIcon(for: .gpt)
         populateSessionMenu(gptActiveMenu, titles: gptSnapshot.activeSessionTitles)
         gptIdleSessionsMenuItem.title = "GPT 闲置会话 \(gptSnapshot.idleSessionTitles.count)"
         populateSessionMenu(gptIdleMenu, titles: gptSnapshot.idleSessionTitles)
 
         // Claude: state line doubles as active sessions menu
         claudeStateMenuItem.title = providerStateTitle(name: "Claude", isThinking: claudeSnapshot.isThinking, activeCount: claudeSnapshot.activeSessionCount)
+        claudeStateMenuItem.image = BrandIconImage.menuIcon(for: .claude)
         populateSessionMenu(claudeActiveMenu, titles: claudeSnapshot.activeSessionTitles)
         claudeIdleSessionsMenuItem.title = "Claude 闲置会话 \(claudeSnapshot.idleSessionTitles.count)"
         populateSessionMenu(claudeIdleMenu, titles: claudeSnapshot.idleSessionTitles)
@@ -807,7 +821,9 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     private func updatePendingSessionDisplay() {
         stateMenuItem.title = "状态：检测中"
         gptStateMenuItem.title = "GPT：检测中"
+        gptStateMenuItem.image = BrandIconImage.menuIcon(for: .gpt)
         claudeStateMenuItem.title = "Claude：检测中"
+        claudeStateMenuItem.image = BrandIconImage.menuIcon(for: .claude)
         gptIdleSessionsMenuItem.title = "GPT 闲置会话 --"
         claudeIdleSessionsMenuItem.title = "Claude 闲置会话 --"
         populateSessionMenu(gptActiveMenu, titles: [])
@@ -816,13 +832,15 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         populateSessionMenu(claudeIdleMenu, titles: [])
 
         if let button = statusItem.button {
-            button.image = StatusDotImage.make(color: colorPreferences.idleColor, provider: .gpt, isActive: false)
+            button.image = BrandIconImage.statusBarIcon(for: .gpt)
+            button.layer?.backgroundColor = NSColor.clear.cgColor
             button.toolTip = "Codex/GPT：检测中"
             button.setAccessibilityLabel("Codex/GPT 检测中")
         }
 
         if let button = claudeStatusItem.button {
-            button.image = StatusDotImage.make(color: colorPreferences.idleColor, provider: .claude, isActive: false)
+            button.image = BrandIconImage.statusBarIcon(for: .claude)
+            button.layer?.backgroundColor = NSColor.clear.cgColor
             button.toolTip = "Claude：检测中"
             button.setAccessibilityLabel("Claude 检测中")
         }
@@ -3132,69 +3150,65 @@ private enum StatusProviderIcon {
     }
 }
 
-private enum StatusDotImage {
-    static func make(color: NSColor, provider: StatusProviderIcon, isActive: Bool) -> NSImage {
-        let size = NSSize(width: 18, height: 18)
-        let image = NSImage(size: size)
+private enum BrandIconImage {
+    static func statusBarIcon(for provider: StatusProviderIcon, size: CGFloat = 20) -> NSImage {
+        let image = NSImage(size: NSSize(width: size, height: size))
         image.lockFocus()
 
-        let bounds = NSRect(origin: .zero, size: size)
+        let bounds = NSRect(origin: .zero, size: NSSize(width: size, height: size))
         NSColor.clear.setFill()
         bounds.fill()
 
-        if isActive {
-            color.withAlphaComponent(0.22).setFill()
-            NSBezierPath(ovalIn: bounds.insetBy(dx: 0.4, dy: 0.4)).fill()
-        }
-
-        drawProviderIcon(provider, isActive: isActive)
-        drawStatusMarker(color: color, isActive: isActive)
+        drawProviderIcon(provider, in: bounds.insetBy(dx: 2, dy: 2))
 
         image.unlockFocus()
         image.isTemplate = false
         return image
     }
 
-    private static func drawProviderIcon(_ provider: StatusProviderIcon, isActive: Bool) {
+    static func menuIcon(for provider: StatusProviderIcon) -> NSImage {
+        let size: CGFloat = 16
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+
+        let bounds = NSRect(origin: .zero, size: NSSize(width: size, height: size))
+        NSColor.clear.setFill()
+        bounds.fill()
+
+        drawProviderIcon(provider, in: bounds.insetBy(dx: 1.5, dy: 1.5))
+
+        image.unlockFocus()
+        image.isTemplate = false
+        return image
+    }
+
+    private static func drawProviderIcon(_ provider: StatusProviderIcon, in rect: NSRect) {
         guard let icon = SVGIconLoader.icon(for: provider) else {
-            drawFallbackIcon(provider, isActive: isActive)
+            drawFallbackIcon(provider, in: rect)
             return
         }
 
-        let alpha: CGFloat = isActive ? 1 : 0.72
-        let iconRect = NSRect(x: 2.3, y: 2.8, width: 13.4, height: 13.4)
         for shape in icon.shapes {
             guard let path = SVGPathParser.path(from: shape.pathData)?.copy() as? NSBezierPath else {
                 continue
             }
             let fillColor = shape.fillColor ?? (shape.usesCurrentColor ? provider.currentColor : icon.defaultFillColor)
-            fillColor.withAlphaComponent(alpha).setFill()
-            SVGPathParser.draw(path, viewBox: icon.viewBox, in: iconRect)
+            fillColor.setFill()
+            SVGPathParser.draw(path, viewBox: icon.viewBox, in: rect)
         }
     }
 
-    private static func drawFallbackIcon(_ provider: StatusProviderIcon, isActive: Bool) {
+    private static func drawFallbackIcon(_ provider: StatusProviderIcon, in rect: NSRect) {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .center
-        let fontSize: CGFloat = provider == .gpt ? 5.1 : 8.4
+        let fontSize: CGFloat = provider == .gpt ? rect.width * 0.36 : rect.width * 0.52
+        let textRect = NSRect(x: rect.minX, y: rect.midY - rect.height * 0.26, width: rect.width, height: rect.height * 0.56)
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: fontSize, weight: .bold),
-            .foregroundColor: NSColor.labelColor.withAlphaComponent(isActive ? 1 : 0.72),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .bold),
+            .foregroundColor: provider.currentColor,
             .paragraphStyle: paragraphStyle
         ]
-        provider.fallbackTitle.draw(
-            in: NSRect(x: 1.6, y: 5.8, width: 14.8, height: 7),
-            withAttributes: attributes
-        )
-    }
-
-    private static func drawStatusMarker(color: NSColor, isActive: Bool) {
-        let markerSize: CGFloat = isActive ? 5.4 : 4.6
-        let markerRect = NSRect(x: 11.7, y: 1.4, width: markerSize, height: markerSize)
-        NSColor.windowBackgroundColor.withAlphaComponent(0.96).setFill()
-        NSBezierPath(ovalIn: markerRect.insetBy(dx: -0.9, dy: -0.9)).fill()
-        color.withAlphaComponent(isActive ? 1 : 0.74).setFill()
-        NSBezierPath(ovalIn: markerRect).fill()
+        provider.fallbackTitle.draw(in: textRect, withAttributes: attributes)
     }
 }
 
