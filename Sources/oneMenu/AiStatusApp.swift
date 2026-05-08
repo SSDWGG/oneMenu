@@ -91,7 +91,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     private var lastEmailConfigModDate: Date?
     private var activeWorkTransitionTracker = ActiveWorkTransitionTracker()
     private var previousActiveSessionsByID: [String: TrackedSession]?
-    private let systemReminderRequestIdentifier = "aistatus.systemReminder"
+    private let systemReminderRequestIdentifier = "onemenu.systemReminder"
     private var systemReminderRegistrationStatusText = "未注册"
 
     static func main() {
@@ -2142,7 +2142,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         content.sound = .default
 
         let request = UNNotificationRequest(
-            identifier: "aistatus.systemReminder.test.\(UUID().uuidString)",
+            identifier: "onemenu.systemReminder.test.\(UUID().uuidString)",
             content: content,
             trigger: nil
         )
@@ -2193,7 +2193,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
 
     private func refreshEmailConfiguredState() {
         let configURL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".aistatus", isDirectory: true)
+            .appendingPathComponent(".onemenu", isDirectory: true)
             .appendingPathComponent("email.json")
 
         let currentModDate = (try? configURL.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
@@ -2268,7 +2268,9 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     }
 
     private func sendAllWorkFinishedEmail(endedSessions: [TrackedSession]) {
-        // Don't send if email is disabled or not configured
+        guard sessionNotificationPreferences.isEnabled else {
+            return
+        }
         guard case .configured = emailStatus else {
             return
         }

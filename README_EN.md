@@ -80,10 +80,10 @@ Scripts/build-dmg.sh
 
 ## Email Notification Config
 
-Email is disabled by default; create `~/.aistatus/email.json` to enable. A single email is sent when all AI sessions become idle.
+Email is disabled by default; create `~/.onemenu/email.json` to enable. A single email is sent when all AI sessions become idle.
 
 ```bash
-mkdir -p ~/.aistatus && chmod 700 ~/.aistatus
+mkdir -p ~/.onemenu && chmod 700 ~/.onemenu
 ```
 
 Recommended: store SMTP password in Keychain:
@@ -91,18 +91,18 @@ Recommended: store SMTP password in Keychain:
 ```bash
 security add-generic-password \
   -U \
-  -s aistatus-email \
+  -s onemenu-email \
   -a sender@example.com \
   -w 'your-smtp-app-password'
 ```
 
-`~/.aistatus/email.json` example:
+`~/.onemenu/email.json` example:
 
 ```json
 {
   "smtpURL": "smtps://smtp.example.com:465",
   "username": "sender@example.com",
-  "passwordCommand": "security find-generic-password -s aistatus-email -a sender@example.com -w",
+  "passwordCommand": "security find-generic-password -s onemenu-email -a sender@example.com -w",
   "from": "sender@example.com",
   "to": ["you@example.com"],
   "subject": "oneMenu: All AI tasks completed",
@@ -111,9 +111,9 @@ security add-generic-password \
 ```
 
 Environment variables:
-- `AISTATUS_EMAIL_CONFIG`: custom config path
-- `AISTATUS_EMAIL_PASSWORD`: SMTP password
-- `AISTATUS_EMAIL_PASSWORD_COMMAND`: command to retrieve password
+- `ONEMENU_EMAIL_CONFIG`: custom config path
+- `ONEMENU_EMAIL_PASSWORD`: SMTP password
+- `ONEMENU_EMAIL_PASSWORD_COMMAND`: command to retrieve password
 
 ## Menu Bar Interaction
 

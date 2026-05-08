@@ -9,7 +9,7 @@ public record EmailMessage(string To, string Subject, string Body);
 /// <summary>
 /// Sends email via SMTP using System.Net.Mail.SmtpClient.
 /// Replaces the macOS curl-based approach with native .NET SMTP.
-/// Reads config from ~/.aistatus/email.json (same format as macOS version).
+/// Reads config from ~/.onemenu/email.json (same format as macOS version).
 /// </summary>
 public class SmtpEmailSender
 {
@@ -23,7 +23,7 @@ public class SmtpEmailSender
     public async Task SendAsync(EmailMessage message, CancellationToken ct = default)
     {
         if (!_config.IsValid)
-            throw new InvalidOperationException("邮件配置不完整：请检查 ~/.aistatus/email.json");
+            throw new InvalidOperationException("邮件配置不完整：请检查 ~/.onemenu/email.json");
 
         using var client = new SmtpClient(_config.Host, _config.Port)
         {

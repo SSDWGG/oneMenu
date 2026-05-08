@@ -15,7 +15,7 @@ final class EmailConfigWindowController: NSWindowController {
 
     private let passwordLabel = NSTextField(labelWithString: "授权码：")
     private let passwordCommandLabel = NSTextField(labelWithString: "密码命令：")
-    private let passwordHint = NSTextField(labelWithString: "授权码和密码命令二选一。QQ/163 等邮箱请填写授权码而非登录密码。密码命令如 security find-generic-password -w -s aistatus-smtp")
+    private let passwordHint = NSTextField(labelWithString: "授权码和密码命令二选一。QQ/163 等邮箱请填写授权码而非登录密码。密码命令如 security find-generic-password -w -s onemenu-smtp")
     private let showPasswordCheckbox = NSButton(checkboxWithTitle: "显示授权码", target: nil, action: nil)
 
     private var formStack: NSStackView!
@@ -44,7 +44,7 @@ final class EmailConfigWindowController: NSWindowController {
         usernameField.placeholderString = "sender@example.com"
         passwordSecureField.placeholderString = "SMTP 授权码（留空则使用密码命令）"
         passwordPlainField.placeholderString = "SMTP 授权码（留空则使用密码命令）"
-        passwordCommandField.placeholderString = "security find-generic-password -w -s aistatus-smtp"
+        passwordCommandField.placeholderString = "security find-generic-password -w -s onemenu-smtp"
         fromField.placeholderString = "sender@example.com"
         toField.placeholderString = "recipient@example.com"
         subjectField.placeholderString = "oneMenu: all AI work finished"
@@ -215,7 +215,7 @@ final class EmailConfigWindowController: NSWindowController {
 
     private func loadRawConfig() throws -> [String: Any]? {
         let configURL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".aistatus", isDirectory: true)
+            .appendingPathComponent(".onemenu", isDirectory: true)
             .appendingPathComponent("email.json")
         guard FileManager.default.fileExists(atPath: configURL.path) else { return nil }
         let data = try Data(contentsOf: configURL)
@@ -326,7 +326,7 @@ final class EmailConfigWindowController: NSWindowController {
 
     private func writeConfig(_ config: [String: Any]) {
         let configDir = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".aistatus", isDirectory: true)
+            .appendingPathComponent(".onemenu", isDirectory: true)
         let configURL = configDir.appendingPathComponent("email.json")
 
         do {

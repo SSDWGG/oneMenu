@@ -80,10 +80,10 @@ Scripts/build-dmg.sh
 
 ## 邮件通知配置
 
-邮件默认关闭；创建 `~/.aistatus/email.json` 后启用。当所有 AI 会话从活跃变为空闲时发送一封邮件。
+邮件默认关闭；创建 `~/.onemenu/email.json` 后启用。当所有 AI 会话从活跃变为空闲时发送一封邮件。
 
 ```bash
-mkdir -p ~/.aistatus && chmod 700 ~/.aistatus
+mkdir -p ~/.onemenu && chmod 700 ~/.onemenu
 ```
 
 推荐将 SMTP 授权码存入 Keychain：
@@ -91,18 +91,18 @@ mkdir -p ~/.aistatus && chmod 700 ~/.aistatus
 ```bash
 security add-generic-password \
   -U \
-  -s aistatus-email \
+  -s onemenu-email \
   -a sender@example.com \
   -w 'your-smtp-app-password'
 ```
 
-`~/.aistatus/email.json` 示例：
+`~/.onemenu/email.json` 示例：
 
 ```json
 {
   "smtpURL": "smtps://smtp.example.com:465",
   "username": "sender@example.com",
-  "passwordCommand": "security find-generic-password -s aistatus-email -a sender@example.com -w",
+  "passwordCommand": "security find-generic-password -s onemenu-email -a sender@example.com -w",
   "from": "sender@example.com",
   "to": ["you@example.com"],
   "subject": "oneMenu: All AI tasks completed",
@@ -111,9 +111,9 @@ security add-generic-password \
 ```
 
 环境变量：
-- `AISTATUS_EMAIL_CONFIG`：自定义配置文件路径
-- `AISTATUS_EMAIL_PASSWORD`：SMTP 密码
-- `AISTATUS_EMAIL_PASSWORD_COMMAND`：获取密码的命令
+- `ONEMENU_EMAIL_CONFIG`：自定义配置文件路径
+- `ONEMENU_EMAIL_PASSWORD`：SMTP 密码
+- `ONEMENU_EMAIL_PASSWORD_COMMAND`：获取密码的命令
 
 ## 菜单栏交互
 

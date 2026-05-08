@@ -2,7 +2,7 @@ namespace OneMenu.Core.Email;
 
 public class EmailNotificationConfig
 {
-    private const string ConfigFileName = ".aistatus/email.json";
+    private const string ConfigFileName = ".onemenu/email.json";
 
     public static string ConfigFilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ConfigFileName);

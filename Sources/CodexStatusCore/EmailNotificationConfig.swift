@@ -38,15 +38,15 @@ public struct EmailNotificationConfig: Equatable {
 }
 
 public enum EmailNotificationConfigLoader {
-    public static let configPathEnvironmentKey = "AISTATUS_EMAIL_CONFIG"
-    public static let passwordEnvironmentKey = "AISTATUS_EMAIL_PASSWORD"
-    public static let passwordCommandEnvironmentKey = "AISTATUS_EMAIL_PASSWORD_COMMAND"
+    public static let configPathEnvironmentKey = "ONEMENU_EMAIL_CONFIG"
+    public static let passwordEnvironmentKey = "ONEMENU_EMAIL_PASSWORD"
+    public static let passwordCommandEnvironmentKey = "ONEMENU_EMAIL_PASSWORD_COMMAND"
 
     public static func defaultConfigURL(
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
     ) -> URL {
         homeDirectory
-            .appendingPathComponent(".aistatus", isDirectory: true)
+            .appendingPathComponent(".onemenu", isDirectory: true)
             .appendingPathComponent("email.json")
     }
 
