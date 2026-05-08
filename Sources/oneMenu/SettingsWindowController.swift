@@ -165,6 +165,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
     private var systemReminderTitleField: NSTextField?
     private var systemReminderMessageField: NSTextField?
     private var sleepStateLabel: NSTextField?
+    private var sleepToggle: NSButton?
     private var appearanceModePopup: NSPopUpButton?
     private var appearanceStatusLabel: NSTextField?
     private let detailContainer = NSView(frame: .zero)
@@ -287,6 +288,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
     func updateSleepState(isEnabled: Bool) {
         sleepIsEnabled = isEnabled
         sleepStateLabel?.stringValue = isEnabled ? "当前状态：已开启" : "当前状态：已关闭"
+        sleepToggle?.state = isEnabled ? .on : .off
     }
 
     func updateAppearanceMode() {
@@ -727,6 +729,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
 
         let sleepToggle = NSButton(checkboxWithTitle: "保持 Mac 活跃（防休眠）", target: self, action: #selector(sleepPreventionToggled(_:)))
         sleepToggle.state = sleepPreventionPreferences.isEnabled ? .on : .off
+        self.sleepToggle = sleepToggle
         stack.addArrangedSubview(settingRow(title: "运行状态", detail: "开启后会立即创建系统和显示器防休眠断言。", control: sleepToggle))
 
         // Duration input
