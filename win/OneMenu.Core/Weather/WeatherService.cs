@@ -1,3 +1,5 @@
+using System.Net.Http;
+
 namespace OneMenu.Core.Weather;
 
 public enum WeatherServiceState
