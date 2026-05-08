@@ -183,12 +183,12 @@ public class SystemTrayService : IDisposable
         }
         else if (gpt.IsThinking)
         {
-            _gptIcon.Icon = CircleIcon(_colorPrefs.RunningColor.WpfColor);
+            _gptIcon.Icon = CircleIcon(_colorPrefs.RunningColor.ToDrawingColor());
             _gptIcon.ToolTipText = $"GPT: {gpt.ActiveSessionCount} active · {gpt.ScannedFileCount} sessions";
         }
         else
         {
-            _gptIcon.Icon = CircleIcon(_colorPrefs.IdleColor.WpfColor);
+            _gptIcon.Icon = CircleIcon(_colorPrefs.IdleColor.ToDrawingColor());
             _gptIcon.ToolTipText = $"GPT: idle · {gpt.ScannedFileCount} sessions";
         }
 

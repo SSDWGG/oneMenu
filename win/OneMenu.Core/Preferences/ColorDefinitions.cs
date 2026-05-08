@@ -7,12 +7,7 @@ namespace OneMenu.Core.Preferences;
 /// </summary>
 public static class ColorDefinitions
 {
-    public record ColorOption(string Id, string Title, string HexColor)
-    {
-        // System.Windows.Media.Color from hex
-        public System.Windows.Media.Color WpfColor =>
-            (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(HexColor);
-    }
+    public record ColorOption(string Id, string Title, string HexColor);
 
     // ---- Status Light Colors (for GPT/Claude running/idle indicators) ----
     public static readonly List<ColorOption> StatusLightColors =

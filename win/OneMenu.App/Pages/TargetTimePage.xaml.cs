@@ -29,7 +29,7 @@ public partial class TargetTimePage : Page
             .First(b => b.Behavior == _prefs.PastBehavior);
 
         BgColorCombo.ItemsSource = ColorDefinitions.TargetTimeCountdownBackgroundColors
-            .Select(c => new ColorItem(c.Id, c.Title, new SolidColorBrush(c.WpfColor))).ToList();
+            .Select(c => new ColorItem(c.Id, c.Title, new SolidColorBrush(c.ToMediaColor()))).ToList();
         BgColorCombo.SelectedItem = ((List<ColorItem>)BgColorCombo.ItemsSource)
             .First(c => c.Id == _prefs.BackgroundColorID);
 
@@ -39,7 +39,7 @@ public partial class TargetTimePage : Page
             .First(w => w.Weight == _prefs.TextWeight);
 
         TextColorCombo.ItemsSource = ColorDefinitions.TargetTimeCountdownTextColors
-            .Select(c => new ColorItem(c.Id, c.Title, new SolidColorBrush(c.WpfColor))).ToList();
+            .Select(c => new ColorItem(c.Id, c.Title, new SolidColorBrush(c.ToMediaColor()))).ToList();
         TextColorCombo.SelectedItem = ((List<ColorItem>)TextColorCombo.ItemsSource)
             .First(c => c.Id == _prefs.TextColorID);
 

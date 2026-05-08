@@ -22,7 +22,7 @@ public partial class ColorSettingsPage : Page
         DataContext = this;
 
         var colors = ColorDefinitions.StatusLightColors
-            .Select(c => new ColorItem(c.Id, c.Title, new SolidColorBrush(c.WpfColor)))
+            .Select(c => new ColorItem(c.Id, c.Title, new SolidColorBrush(c.ToMediaColor())))
             .ToList();
 
         RunningColorCombo.ItemsSource = colors;

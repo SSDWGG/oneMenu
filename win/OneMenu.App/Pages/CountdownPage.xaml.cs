@@ -26,7 +26,7 @@ public partial class CountdownPage : Page
             ? ReminderUnit.Items[1] : ReminderUnit.Items[0];
 
         var colors = ColorDefinitions.CountdownReminderColors
-            .Select(c => new ColorItem(c.Id, c.Title, new SolidColorBrush(c.WpfColor)))
+            .Select(c => new ColorItem(c.Id, c.Title, new SolidColorBrush(c.ToMediaColor())))
             .ToList();
         ReminderColor.ItemsSource = colors;
         ReminderColor.SelectedItem = colors.FirstOrDefault(c => c.Id == _prefs.ReminderColorID);
