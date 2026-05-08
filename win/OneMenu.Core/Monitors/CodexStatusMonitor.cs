@@ -319,12 +319,12 @@ public partial class CodexStatusMonitor
             if (topLevelType != "assistant")
                 return null;
 
-            var message = root.TryGetProperty("message", out var msg) &&
+            JsonElement? message = root.TryGetProperty("message", out var msg) &&
                 msg.ValueKind == JsonValueKind.Object ? msg : null;
 
-            var content = message?.TryGetProperty("content", out var mc) == true
+            JsonElement? content = message?.TryGetProperty("content", out var mc) == true
                 ? mc : payload?.TryGetProperty("content", out var pc) == true
-                    ? pc : (JsonElement?)null;
+                    ? pc : null;
 
             if (content == null) return null;
             return SessionTitleNormalizer.TitleFromContent(content.Value, 200);

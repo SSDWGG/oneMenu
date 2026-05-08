@@ -31,7 +31,6 @@ public class WeatherService : IDisposable
     private double? _longitude;
     private WeatherForecast? _latestForecast;
     private DateTime? _lastFetchAt;
-    private CancellationTokenSource? _cts;
 
     public WeatherServiceSnapshot CurrentSnapshot { get; private set; } = WeatherServiceSnapshot.Create(WeatherServiceState.Idle);
     public event Action<WeatherServiceSnapshot>? OnSnapshotChanged;
@@ -106,8 +105,6 @@ public class WeatherService : IDisposable
 
     public void Dispose()
     {
-        _cts?.Cancel();
-        _cts?.Dispose();
         _http?.Dispose();
     }
 }
