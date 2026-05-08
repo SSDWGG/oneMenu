@@ -54,9 +54,9 @@ public class CodexStatusMonitorTests : IDisposable
         var timestamp2 = now.AddMinutes(-3).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
 
         File.WriteAllText(sessionFile,
-            $$""""
-            {"type":"event_msg","timestamp":"{{timestamp1}}","payload":{"type":"task_started"}}
-            {"type":"assistant","timestamp":"{{timestamp2}}","message":{"role":"assistant","content":[{"type":"text","text":"I'm working on this task"}]}}
+            $$$""""
+            {"type":"event_msg","timestamp":"{{{timestamp1}}}","payload":{"type":"task_started"}}
+            {"type":"assistant","timestamp":"{{{timestamp2}}}","message":{"role":"assistant","content":[{"type":"text","text":"I'm working on this task"}]}}
             """");
 
         var monitor = new CodexStatusMonitor(codexHome: _tempHome, staleAfter: TimeSpan.FromMinutes(30));
@@ -78,8 +78,8 @@ public class CodexStatusMonitorTests : IDisposable
         var oldTimestamp = now.AddMinutes(-60).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
 
         File.WriteAllText(sessionFile,
-            $$""""
-            {"type":"event_msg","timestamp":"{{oldTimestamp}}","payload":{"type":"task_started"}}
+            $$$""""
+            {"type":"event_msg","timestamp":"{{{oldTimestamp}}}","payload":{"type":"task_started"}}
             """");
 
         var monitor = new CodexStatusMonitor(codexHome: _tempHome, staleAfter: TimeSpan.FromMinutes(30));

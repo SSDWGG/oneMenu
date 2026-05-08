@@ -52,9 +52,9 @@ public class ClaudeStatusMonitorTests : IDisposable
         var timestamp2 = now.AddMinutes(-3).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
 
         File.WriteAllText(sessionFile,
-            $$""""
-            {"type":"user","timestamp":"{{timestamp1}}","message":{"role":"user","content":"Hello"}}
-            {"type":"assistant","timestamp":"{{timestamp2}}","message":{"role":"assistant","content":[{"type":"text","text":"Hi there!"}]}}
+            $$$""""
+            {"type":"user","timestamp":"{{{timestamp1}}}","message":{"role":"user","content":"Hello"}}
+            {"type":"assistant","timestamp":"{{{timestamp2}}}","message":{"role":"assistant","content":[{"type":"text","text":"Hi there!"}]}}
             """");
 
         var monitor = new ClaudeStatusMonitor(claudeHome: _tempHome, staleAfter: TimeSpan.FromMinutes(30));
@@ -76,9 +76,9 @@ public class ClaudeStatusMonitorTests : IDisposable
         var timestamp2 = now.AddMinutes(-8).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
 
         File.WriteAllText(sessionFile,
-            $$""""
-            {"type":"user","timestamp":"{{timestamp1}}","message":{"role":"user","content":"Hello"}}
-            {"type":"assistant","timestamp":"{{timestamp2}}","message":{"role":"assistant","content":[{"type":"text","text":"Hi!"}],"stop_reason":"end_turn"}}
+            $$$""""
+            {"type":"user","timestamp":"{{{timestamp1}}}","message":{"role":"user","content":"Hello"}}
+            {"type":"assistant","timestamp":"{{{timestamp2}}}","message":{"role":"assistant","content":[{"type":"text","text":"Hi!"}],"stop_reason":"end_turn"}}
             """");
 
         var monitor = new ClaudeStatusMonitor(claudeHome: _tempHome, staleAfter: TimeSpan.FromMinutes(30));

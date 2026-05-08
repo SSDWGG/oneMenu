@@ -12,7 +12,7 @@ public partial class ColorSettingsPage : Page
 
     public record ColorItem(string Id, string Title, Brush WpfBrush);
 
-    public string Title => _isCodex ? "Codex/GPT" : "Claude";
+    public new string Title => _isCodex ? "Codex/GPT" : "Claude";
 
     public ColorSettingsPage(PreferencesStore store, bool isCodex)
     {
