@@ -773,6 +773,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             updateTargetTimeCountdownDisplay()
             updateSystemReminderDisplay()
             updateSleepStatusItem()
+        settingsWindowController?.updateSleepState(isEnabled: sleepPreventer.isEnabled)
             syncStatusBarItemsVisibility()
             updateErrorDisplay(gptError: nil, claudeError: nil)
             refreshHoverWindowIfNeeded()
@@ -843,6 +844,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         updateTargetTimeCountdownDisplay()
         updateSystemReminderDisplay()
         updateSleepStatusItem()
+        settingsWindowController?.updateSleepState(isEnabled: sleepPreventer.isEnabled)
         autoStartMenuItem.state = AutoStartPreferences.isEnabled ? .on : .off
         syncStatusBarItemsVisibility()
         updateErrorDisplay(gptError: gptSnapshot.errorMessage, claudeError: claudeSnapshot.errorMessage)
@@ -1850,8 +1852,8 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         return image
     }
 
-    /// Draws a coffee cup icon for the sleep prevention status bar item.
-    /// Filled = solid cup body + steam (active). Empty = outline only (inactive).
+    /// Draws a simple rounded coffee cup icon.
+    /// Filled = solid cup with steam (active). Empty = cup outline (inactive).
     private func coffeeCupIcon(filled: Bool) -> NSImage {
         let size: CGFloat = 18
         let image = NSImage(size: NSSize(width: size, height: size))
@@ -1867,95 +1869,38 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         ctx.setLineCap(.round)
         ctx.setLineJoin(.round)
 
-        let cupLeft: CGFloat = 3.5
-        let cupRight: CGFloat = 14.5
-        let cupTop: CGFloat = 6
-        let cupBottom: CGFloat = 16
-        let rimTop: CGFloat = cupTop - 1.5
-        let handleRight: CGFloat = cupRight + 1
-
-        // --- Cup body ---
-        // Trapezoid: top narrower, bottom wider
-        let topLeft = CGPoint(x: cupLeft + 1, y: cupTop)
-        let topRight = CGPoint(x: cupRight - 1, y: cupTop)
-        let bottomLeft = CGPoint(x: cupLeft, y: cupBottom)
-        let bottomRight = CGPoint(x: cupRight, y: cupBottom)
+        // Rounded cup body: from y=4 to y=15, x=4 to x=14
+        let rect = CGRect(x: 4, y: 4, width: 10, height: 11)
+        let radius: CGFloat = 3
 
         if filled {
-            // Solid body
-            ctx.move(to: topLeft)
-            ctx.addLine(to: topRight)
-            ctx.addLine(to: bottomRight)
-            ctx.addLine(to: bottomLeft)
-            ctx.closePath()
-            ctx.setFillColor(CGColor(gray: 0, alpha: 0.85))
+            // Filled cup with rounded corners
+            let path = CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
+            ctx.addPath(path)
+            ctx.setFillColor(CGColor(gray: 0, alpha: 0.8))
             ctx.fillPath()
 
-            // Coffee surface highlight line inside cup
-            ctx.setStrokeColor(CGColor(gray: 1, alpha: 0.35))
+            // Coffee surface line
+            ctx.setStrokeColor(CGColor(gray: 1, alpha: 0.3))
             ctx.setLineWidth(1)
-            let coffeeY = cupTop + 3
-            ctx.move(to: CGPoint(x: topLeft.x + 1, y: coffeeY))
-            ctx.addLine(to: CGPoint(x: topRight.x - 1, y: coffeeY))
+            ctx.move(to: CGPoint(x: 5.5, y: 8))
+            ctx.addLine(to: CGPoint(x: 12.5, y: 8))
             ctx.strokePath()
 
-            // Rim line
-            ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.85))
-            ctx.setLineWidth(1.5)
-            ctx.move(to: CGPoint(x: cupLeft, y: rimTop))
-            ctx.addLine(to: CGPoint(x: cupRight, y: rimTop))
+            // Simple steam arc
+            ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.55))
+            ctx.setLineWidth(1.2)
+            ctx.move(to: CGPoint(x: 7.5, y: 3))
+            ctx.addCurve(to: CGPoint(x: 7.5, y: 0), control1: CGPoint(x: 6, y: 1.5), control2: CGPoint(x: 9, y: 1))
             ctx.strokePath()
-
-            // Cup handle
-            ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.85))
-            ctx.setLineWidth(1.3)
-            ctx.addArc(center: CGPoint(x: handleRight + 2, y: cupTop + 4.5),
-                       radius: 4, startAngle: .pi * 0.7, endAngle: .pi * 1.3, clockwise: false)
-            ctx.strokePath()
-
-            // Saucer
-            ctx.move(to: CGPoint(x: cupLeft - 2, y: cupBottom + 2))
-            ctx.addLine(to: CGPoint(x: cupRight + 4, y: cupBottom + 2))
-            ctx.strokePath()
-
-            // Steam
-            ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.6))
-            ctx.setLineWidth(1)
-            ctx.move(to: CGPoint(x: 7, y: 3))
-            ctx.addLine(to: CGPoint(x: 7, y: 0))
-            ctx.strokePath()
-            ctx.move(to: CGPoint(x: 10, y: 3.5))
-            ctx.addLine(to: CGPoint(x: 10, y: 0.5))
-            ctx.strokePath()
-            ctx.move(to: CGPoint(x: 13, y: 4))
-            ctx.addLine(to: CGPoint(x: 13, y: 1))
+            ctx.move(to: CGPoint(x: 10.5, y: 3))
+            ctx.addCurve(to: CGPoint(x: 10.5, y: 0.5), control1: CGPoint(x: 9.5, y: 2), control2: CGPoint(x: 11.5, y: 1.5))
             ctx.strokePath()
         } else {
-            // Outline only
-            ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.5))
-            ctx.setLineWidth(1.2)
-
-            // Cup body outline
-            ctx.move(to: topLeft)
-            ctx.addLine(to: topRight)
-            ctx.addLine(to: bottomRight)
-            ctx.addLine(to: bottomLeft)
-            ctx.closePath()
-            ctx.strokePath()
-
-            // Rim
-            ctx.move(to: CGPoint(x: cupLeft + 1, y: rimTop))
-            ctx.addLine(to: CGPoint(x: cupRight - 1, y: rimTop))
-            ctx.strokePath()
-
-            // Handle
-            ctx.addArc(center: CGPoint(x: handleRight + 2, y: cupTop + 4.5),
-                       radius: 4, startAngle: .pi * 0.7, endAngle: .pi * 1.3, clockwise: false)
-            ctx.strokePath()
-
-            // Saucer
-            ctx.move(to: CGPoint(x: cupLeft - 2, y: cupBottom + 2))
-            ctx.addLine(to: CGPoint(x: cupRight + 4, y: cupBottom + 2))
+            // Empty cup outline
+            let path = CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
+            ctx.addPath(path)
+            ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.45))
             ctx.strokePath()
         }
 
