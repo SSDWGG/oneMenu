@@ -1852,59 +1852,10 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         return image
     }
 
-    /// Draws a simple rounded coffee cup icon.
-    /// Filled = solid cup with steam (active). Empty = cup outline (inactive).
     private func coffeeCupIcon(filled: Bool) -> NSImage {
-        let size: CGFloat = 18
-        let image = NSImage(size: NSSize(width: size, height: size))
+        let name = filled ? "CoffeeCupIdle" : "CoffeeCupActive"
+        let image = NSImage(named: name) ?? NSImage(size: NSSize(width: 18, height: 18))
         image.isTemplate = true
-        image.lockFocus()
-
-        guard let ctx = NSGraphicsContext.current?.cgContext else {
-            image.unlockFocus()
-            return image
-        }
-
-        ctx.setLineWidth(1.5)
-        ctx.setLineCap(.round)
-        ctx.setLineJoin(.round)
-
-        // Rounded cup body: from y=4 to y=15, x=4 to x=14
-        let rect = CGRect(x: 4, y: 4, width: 10, height: 11)
-        let radius: CGFloat = 3
-
-        if filled {
-            // Filled cup with rounded corners
-            let path = CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
-            ctx.addPath(path)
-            ctx.setFillColor(CGColor(gray: 0, alpha: 0.8))
-            ctx.fillPath()
-
-            // Coffee surface line
-            ctx.setStrokeColor(CGColor(gray: 1, alpha: 0.3))
-            ctx.setLineWidth(1)
-            ctx.move(to: CGPoint(x: 5.5, y: 8))
-            ctx.addLine(to: CGPoint(x: 12.5, y: 8))
-            ctx.strokePath()
-
-            // Simple steam arc
-            ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.55))
-            ctx.setLineWidth(1.2)
-            ctx.move(to: CGPoint(x: 7.5, y: 3))
-            ctx.addCurve(to: CGPoint(x: 7.5, y: 0), control1: CGPoint(x: 6, y: 1.5), control2: CGPoint(x: 9, y: 1))
-            ctx.strokePath()
-            ctx.move(to: CGPoint(x: 10.5, y: 3))
-            ctx.addCurve(to: CGPoint(x: 10.5, y: 0.5), control1: CGPoint(x: 9.5, y: 2), control2: CGPoint(x: 11.5, y: 1.5))
-            ctx.strokePath()
-        } else {
-            // Empty cup outline
-            let path = CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
-            ctx.addPath(path)
-            ctx.setStrokeColor(CGColor(gray: 0, alpha: 0.45))
-            ctx.strokePath()
-        }
-
-        image.unlockFocus()
         return image
     }
 
