@@ -386,6 +386,15 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             return
         }
 
+        // Sleep icon: single left click toggles sleep prevention
+        if module == .sleep {
+            pendingStatusClickWorkItem?.cancel()
+            sleepPreventionPreferences.isEnabled.toggle()
+            applySleepPreventionPreference()
+            refresh()
+            return
+        }
+
         pendingStatusClickWorkItem?.cancel()
         if isStatusHoverPinnedByClick,
            hoveredModule == module,

@@ -291,7 +291,8 @@ final class ClaudeSessionActivityParser {
 
         let message = object["message"] as? [String: Any]
         let role = message?["role"] as? String
-        let stopReason = message?["stop_reason"] as? String
+        // Check stop_reason both inside message and at root level
+        let stopReason = message?["stop_reason"] as? String ?? object["stop_reason"] as? String
         let titleCandidate = SessionTitleNormalizer.explicitTitle(in: object)
             ?? userTitleCandidate(topLevelType: topLevelType, message: message)
         let contentText = topLevelType == "assistant"
