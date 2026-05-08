@@ -5,7 +5,7 @@ using OneMenu.Core.Models;
 
 namespace OneMenu.Core.Monitors;
 
-public class CodexStatusMonitor
+public partial class CodexStatusMonitor
 {
     private readonly string _codexHome;
     private readonly TimeSpan _staleAfter;
