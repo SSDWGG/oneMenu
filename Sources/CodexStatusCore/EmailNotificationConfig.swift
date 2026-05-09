@@ -50,6 +50,28 @@ public enum EmailNotificationConfigLoader {
             .appendingPathComponent("email.json")
     }
 
+    public static func enabledStatus(
+        fileURL: URL? = nil,
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
+        fileManager: FileManager = .default
+    ) throws -> EmailNotificationEnabledStatus {
+        let explicitConfigURL = fileURL
+            ?? environment[configPathEnvironmentKey].flatMap { expandedFileURL(from: $0, homeDirectory: homeDirectory) }
+        let configURL = explicitConfigURL ?? defaultConfigURL(homeDirectory: homeDirectory)
+
+        guard fileManager.fileExists(atPath: configURL.path) else {
+            if explicitConfigURL != nil {
+                throw EmailNotificationConfigError.configFileNotFound(configURL.path)
+            }
+            return .notConfigured
+        }
+
+        let data = try Data(contentsOf: configURL)
+        let config = try JSONDecoder().decode(RawEmailNotificationConfig.self, from: data).resolved()
+        return config.isEnabled ? .enabled : .disabled
+    }
+
     public static func load(
         fileURL: URL? = nil,
         environment: [String: String] = ProcessInfo.processInfo.environment,
@@ -100,6 +122,12 @@ public enum EmailNotificationConfigLoader {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
+}
+
+public enum EmailNotificationEnabledStatus: Equatable {
+    case notConfigured
+    case disabled
+    case enabled
 }
 
 private struct RawEmailNotificationConfig: Decodable {

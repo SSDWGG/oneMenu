@@ -798,14 +798,14 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
 
     private func makeNotificationsPage() -> NSView {
         let stack = basePageStack()
-        addHeader(to: stack, title: "通知", subtitle: "配置会话结束桌面通知和全部 AI 工作结束后的邮件通知。")
+        addHeader(to: stack, title: "通知", subtitle: "分别配置会话结束桌面通知和全部 AI 工作结束后的邮件通知。")
 
         let notificationToggle = NSButton(checkboxWithTitle: "会话结束时发送通知", target: self, action: #selector(sessionNotificationToggled(_:)))
         notificationToggle.state = sessionNotificationPreferences.isEnabled ? .on : .off
-        stack.addArrangedSubview(settingRow(title: "桌面 + 邮件通知", detail: "关闭后，所有会话结束通知（桌面横幅和邮件）都不会发送。", control: notificationToggle))
+        stack.addArrangedSubview(settingRow(title: "桌面通知", detail: "只控制单个会话结束时的 macOS 横幅通知，不影响邮件。", control: notificationToggle))
 
         addActionButton(to: stack, title: "配置邮件通知...", action: #selector(openEmailSettings))
-        let emailHint = secondaryLabel("邮件配置会保存在 ~/.onemenu/email.json。邮件通知不占用状态栏项目。上方开关可统一关闭所有通知。")
+        let emailHint = secondaryLabel("邮件配置会保存在 ~/.onemenu/email.json。只有邮件设置窗口里的“启用邮件通知”会控制全部 AI 空闲后的邮件发送。")
         emailHint.maximumNumberOfLines = 0
         stack.addArrangedSubview(emailHint)
         return scrollView(for: stack)

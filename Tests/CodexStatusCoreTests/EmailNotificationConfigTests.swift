@@ -54,6 +54,34 @@ final class EmailNotificationConfigTests: XCTestCase {
         XCTAssertNil(config)
     }
 
+    func testEnabledStatusReadsDisabledConfigWithoutRequiringSMTPFields() throws {
+        let root = try makeTemporaryDirectory()
+        let configURL = root.appendingPathComponent("email.json")
+        try """
+        {
+          "enabled": false
+        }
+        """.write(to: configURL, atomically: true, encoding: .utf8)
+
+        let status = try EmailNotificationConfigLoader.enabledStatus(
+            environment: [EmailNotificationConfigLoader.configPathEnvironmentKey: configURL.path],
+            homeDirectory: root
+        )
+
+        XCTAssertEqual(status, .disabled)
+    }
+
+    func testEnabledStatusReportsMissingDefaultConfig() throws {
+        let root = try makeTemporaryDirectory()
+
+        let status = try EmailNotificationConfigLoader.enabledStatus(
+            environment: [:],
+            homeDirectory: root
+        )
+
+        XCTAssertEqual(status, .notConfigured)
+    }
+
     func testInvalidSMTPURLThrows() throws {
         let root = try makeTemporaryDirectory()
         let configURL = root.appendingPathComponent("email.json")

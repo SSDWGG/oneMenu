@@ -2282,14 +2282,15 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     }
 
     private func isEmailNotificationEnabledForSending() -> Bool {
-        let configURL = EmailNotificationConfigLoader.defaultConfigURL()
-        let fileExists = FileManager.default.fileExists(atPath: configURL.path)
-
         do {
-            if try EmailNotificationConfigLoader.load() != nil {
+            switch try EmailNotificationConfigLoader.enabledStatus() {
+            case .enabled:
                 return true
+            case .disabled:
+                emailStatus = .disabled
+            case .notConfigured:
+                emailStatus = .notConfigured
             }
-            emailStatus = fileExists ? .disabled : .notConfigured
         } catch {
             emailStatus = .failed(error.localizedDescription)
         }
@@ -2591,6 +2592,13 @@ private final class AllWorkEmailNotifier {
         let finishedAt = Date()
         queue.async {
             do {
+                guard try EmailNotificationConfigLoader.enabledStatus() == .enabled else {
+                    DispatchQueue.main.async {
+                        completion("邮件通知未启用")
+                    }
+                    return
+                }
+
                 guard let config = try EmailNotificationConfigLoader.load() else {
                     DispatchQueue.main.async {
                         completion("邮件通知未启用")
