@@ -67,8 +67,8 @@ Scripts/build-dmg.sh
 ```
 
 Output:
-- `dist/oneMenu-0.1.2.dmg`
-- `dist/oneMenu-0.1.2.dmg.sha256`
+- `dist/oneMenu-0.2.2.dmg`
+- `dist/oneMenu-0.2.2.dmg.sha256`
 
 Recommended to sign and notarize for public distribution:
 
@@ -176,7 +176,7 @@ Verify DMG checksum:
 ```bash
 Scripts/build-dmg.sh
 cd dist
-shasum -a 256 -c oneMenu-0.1.2.dmg.sha256
+shasum -a 256 -c oneMenu-0.2.2.dmg.sha256
 ```
 
 ## Project Structure

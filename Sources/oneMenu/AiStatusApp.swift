@@ -2268,10 +2268,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     }
 
     private func sendAllWorkFinishedEmail(endedSessions: [TrackedSession]) {
-        guard sessionNotificationPreferences.isEnabled else {
-            return
-        }
-        guard case .configured = emailStatus else {
+        guard isEmailNotificationEnabledForSending() else {
             return
         }
         allWorkEmailNotifier.send(endedSessions: endedSessions) { [weak self] errorMessage in
@@ -2282,6 +2279,22 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             }
             self?.refresh()
         }
+    }
+
+    private func isEmailNotificationEnabledForSending() -> Bool {
+        let configURL = EmailNotificationConfigLoader.defaultConfigURL()
+        let fileExists = FileManager.default.fileExists(atPath: configURL.path)
+
+        do {
+            if try EmailNotificationConfigLoader.load() != nil {
+                return true
+            }
+            emailStatus = fileExists ? .disabled : .notConfigured
+        } catch {
+            emailStatus = .failed(error.localizedDescription)
+        }
+
+        return false
     }
 
     func userNotificationCenter(

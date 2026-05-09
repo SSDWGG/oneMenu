@@ -67,8 +67,8 @@ Scripts/build-dmg.sh
 ```
 
 生成文件：
-- `dist/oneMenu-0.1.2.dmg`
-- `dist/oneMenu-0.1.2.dmg.sha256`
+- `dist/oneMenu-0.2.2.dmg`
+- `dist/oneMenu-0.2.2.dmg.sha256`
 
 公开分发建议使用 Developer ID 签名并公证：
 
@@ -180,7 +180,7 @@ swift test
 ```bash
 Scripts/build-dmg.sh
 cd dist
-shasum -a 256 -c oneMenu-0.1.2.dmg.sha256
+shasum -a 256 -c oneMenu-0.2.2.dmg.sha256
 ```
 
 ## 项目结构
