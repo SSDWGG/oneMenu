@@ -126,10 +126,20 @@ Each module can be independently shown/hidden in the status bar.
 
 ## Landing Page
 
+Neumorphic glass-style design with mouse-follow scroll interactions.
+
+### URLs
+
+| Endpoint | URL |
+|----------|-----|
+| GitHub Pages | [ssdwgg.github.io/oneMenu](https://ssdwgg.github.io/oneMenu/) |
+| VPS Domain A (HTTPS) | [onemenu.ssdwgg.site](https://onemenu.ssdwgg.site/) |
+| VPS Domain B | [onemenu.aiwgg.cn](http://onemenu.aiwgg.cn/) |
+
 Local preview:
 
 ```bash
-python3 -m http.server 4173 --directory site
+python3 -m http.server 4173 --directory docs
 open http://127.0.0.1:4173/
 ```
 

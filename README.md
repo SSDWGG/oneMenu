@@ -126,11 +126,19 @@ security add-generic-password \
 
 ## 落地页
 
+拟态玻璃风格，支持鼠标跟随滚动交互。
+
+### 三端预览地址
+
+| 端点 | 地址 |
+|------|------|
+| GitHub Pages | [ssdwgg.github.io/oneMenu](https://ssdwgg.github.io/oneMenu/) |
+| VPS 域名 A (HTTPS) | [onemenu.ssdwgg.site](https://onemenu.ssdwgg.site/) |
+| VPS 域名 B | [onemenu.aiwgg.cn](http://onemenu.aiwgg.cn/) |
+
 [![Pages](https://img.shields.io/badge/GitHub%20Pages-ssdwgg.github.io%2FoneMenu-7ee0c3?logo=github)](https://ssdwgg.github.io/oneMenu/)
 
-宣传页托管在 GitHub Pages，拟态玻璃风格，支持鼠标跟随滚动交互。
-
-预览：
+本地预览：
 
 ```bash
 python3 -m http.server 4173 --directory docs
