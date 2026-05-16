@@ -12,9 +12,13 @@ let package = Package(
     ],
     targets: [
         .target(name: "CodexStatusCore"),
+        .target(
+            name: "SafeNotificationCenter",
+            path: "Sources/SafeNotificationCenter"
+        ),
         .executableTarget(
             name: "oneMenu",
-            dependencies: ["CodexStatusCore"],
+            dependencies: ["CodexStatusCore", "SafeNotificationCenter"],
             resources: [.process("Resources")]
         ),
         .testTarget(

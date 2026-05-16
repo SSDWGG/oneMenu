@@ -13,6 +13,7 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         case sleep
         case appearance
         case notifications
+        case separator
 
         var title: String {
             switch self {
@@ -36,6 +37,8 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
                 return "外观"
             case .notifications:
                 return "通知"
+            case .separator:
+                return "分隔栏"
             }
         }
 
@@ -61,6 +64,8 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
                 return "亮暗色模式"
             case .notifications:
                 return "桌面与邮件"
+            case .separator:
+                return "折叠与展开"
             }
         }
 
@@ -86,6 +91,8 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
                 return "circle.lefthalf.filled"
             case .notifications:
                 return "bell.badge.fill"
+            case .separator:
+                return "sidebar.trailing"
             }
         }
     }
@@ -299,6 +306,10 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         select(section: section(for: module))
     }
 
+    func showSeparatorPage() {
+        select(section: .separator)
+    }
+
     private func buildUI() {
         guard let window else {
             return
@@ -444,6 +455,8 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
             return makeAppearancePage()
         case .notifications:
             return makeNotificationsPage()
+        case .separator:
+            return makeSeparatorPage()
         }
     }
 
@@ -808,6 +821,17 @@ final class SettingsWindowController: NSWindowController, NSTextFieldDelegate {
         let emailHint = secondaryLabel("邮件配置会保存在 ~/.onemenu/email.json。只有邮件设置窗口里的“启用邮件通知”会控制全部 AI 空闲后的邮件发送。")
         emailHint.maximumNumberOfLines = 0
         stack.addArrangedSubview(emailHint)
+        return scrollView(for: stack)
+    }
+
+    private func makeSeparatorPage() -> NSView {
+        let stack = basePageStack()
+        addHeader(to: stack, title: "分隔栏", subtitle: "类似 Hidden Bar，在菜单栏中显示折叠按钮 > 和分隔线 |，用于分组隐藏或显示菜单栏图标。")
+
+        let desc = secondaryLabel("菜单栏中显示两个标记：折叠按钮 > 和分隔线 |。将图标拖到 > 和 | 之间即可在收起时隐藏，> 左侧的图标始终可见。展开时 | 和 > 均显示，点击 > 收起后 | 和中间的图标会被隐藏，此时 > 变为 <。再次点击 < 即可展开。可按住 ⌘Cmd 拖拽标记到菜单栏中的任意位置。")
+        desc.maximumNumberOfLines = 0
+        stack.addArrangedSubview(desc)
+
         return scrollView(for: stack)
     }
 

@@ -2,6 +2,7 @@ import AppKit
 import CodexStatusCore
 import Foundation
 import IOKit.pwr_mgt
+import SafeNotificationCenter
 import ServiceManagement
 import UserNotifications
 
@@ -14,6 +15,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     private let sleepPreventionPreferences = SleepPreventionPreferences()
     private let sessionNotificationPreferences = SessionNotificationPreferences()
     private let statusBarDisplayPreferences = StatusBarDisplayPreferences()
+    private let separatorManager = MenuBarSeparatorManager()
     private let hardwareStatusBarPreferences = HardwareStatusBarPreferences()
     private let countdownPreferences = CountdownTimerPreferences()
     private let targetTimeCountdownPreferences = TargetTimeCountdownPreferences()
@@ -26,7 +28,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     private let monitorQueue = DispatchQueue(label: "oneMenu.sessionMonitors", qos: .utility)
     private let countdownQueue = DispatchQueue(label: "oneMenu.countdownTimer", qos: .userInteractive)
     private let allWorkEmailNotifier = AllWorkEmailNotifier()
-    private let notificationCenter = UNUserNotificationCenter.current()
+    private let notificationCenter: UNUserNotificationCenter? = SafeGetNotificationCenter()
     private let statusItem = NSStatusBar.system.statusItem(withLength: 24)
     private let claudeStatusItem = NSStatusBar.system.statusItem(withLength: 24)
     private let weatherStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -66,6 +68,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     private let hardwareFansMenu = NSMenu(title: "风扇转速")
     private let preventSleepMenuItem = NSMenuItem(title: "保持 Mac 活跃（防休眠）", action: #selector(toggleSleepPrevention(_:)), keyEquivalent: "")
     private let autoStartMenuItem = NSMenuItem(title: "登录时自动启动", action: #selector(toggleAutoStart(_:)), keyEquivalent: "")
+    private let collapseMenuItem = NSMenuItem(title: "折叠菜单栏图标", action: #selector(toggleCollapseFromMenu(_:)), keyEquivalent: "")
     private var emailConfigWindowController: EmailConfigWindowController?
     private var settingsWindowController: SettingsWindowController?
 
@@ -126,6 +129,10 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             self?.refresh()
         }
         weatherService.start()
+        separatorManager.onSeparatorClick = { [weak self] in
+            self?.openSettings(for: nil, sender: nil)
+            self?.settingsWindowController?.showSeparatorPage()
+        }
         refreshSessionMonitors(force: true)
         refreshHardwareIfNeeded(force: true)
         refresh()
@@ -327,6 +334,10 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         autoStartMenuItem.state = AutoStartPreferences.isEnabled ? .on : .off
         autoStartMenuItem.target = self
         menu.addItem(autoStartMenuItem)
+
+        collapseMenuItem.state = separatorManager.isCollapsed ? .on : .off
+        collapseMenuItem.target = self
+        menu.addItem(collapseMenuItem)
         menu.addItem(.separator())
 
         let openCodexItem = NSMenuItem(title: "打开 ~/.codex", action: #selector(openCodexFolder(_:)), keyEquivalent: "")
@@ -1920,8 +1931,8 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     }
 
     private func configureNotifications() {
-        notificationCenter.delegate = self
-        notificationCenter.requestAuthorization(options: [.alert, .sound]) { [weak self] granted, error in
+        notificationCenter?.delegate = self
+        notificationCenter?.requestAuthorization(options: [.alert, .sound]) { [weak self] granted, error in
             DispatchQueue.main.async {
                 if let error {
                     self?.notificationErrorMessage = "通知权限请求失败：\(error.localizedDescription)"
@@ -1943,7 +1954,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     }
 
     private func scheduleSystemReminderNotification() {
-        notificationCenter.removePendingNotificationRequests(withIdentifiers: [systemReminderRequestIdentifier])
+        notificationCenter?.removePendingNotificationRequests(withIdentifiers: [systemReminderRequestIdentifier])
         guard systemReminderPreferences.isEnabled else {
             systemReminderRegistrationStatusText = "未启用"
             settingsWindowController?.updateSystemReminderStatus(registrationStatus: systemReminderRegistrationStatusText)
@@ -1953,14 +1964,14 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         systemReminderRegistrationStatusText = "正在注册"
         settingsWindowController?.updateSystemReminderStatus(registrationStatus: systemReminderRegistrationStatusText)
 
-        notificationCenter.getNotificationSettings { [weak self] settings in
+        notificationCenter?.getNotificationSettings { [weak self] settings in
             guard let self else {
                 return
             }
 
             switch settings.authorizationStatus {
             case .notDetermined:
-                self.notificationCenter.requestAuthorization(options: [.alert, .sound]) { granted, error in
+                self.notificationCenter?.requestAuthorization(options: [.alert, .sound]) { granted, error in
                     DispatchQueue.main.async {
                         if let error {
                             self.notificationErrorMessage = "通知权限请求失败：\(error.localizedDescription)"
@@ -2003,7 +2014,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             return
         }
 
-        notificationCenter.add(request) { [weak self] error in
+        notificationCenter?.add(request) { [weak self] error in
             DispatchQueue.main.async {
                 if let error {
                     self?.notificationErrorMessage = "系统提醒设置失败：\(error.localizedDescription)"
@@ -2018,7 +2029,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     }
 
     private func verifySystemReminderRegistration(for request: UNNotificationRequest) {
-        notificationCenter.getPendingNotificationRequests { [weak self] requests in
+        notificationCenter?.getPendingNotificationRequests { [weak self] requests in
             guard let self else {
                 return
             }
@@ -2091,14 +2102,14 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
     }
 
     private func sendSystemReminderTestNotification() {
-        notificationCenter.getNotificationSettings { [weak self] settings in
+        notificationCenter?.getNotificationSettings { [weak self] settings in
             guard let self else {
                 return
             }
 
             switch settings.authorizationStatus {
             case .notDetermined:
-                self.notificationCenter.requestAuthorization(options: [.alert, .sound]) { granted, error in
+                self.notificationCenter?.requestAuthorization(options: [.alert, .sound]) { granted, error in
                     DispatchQueue.main.async {
                         if let error {
                             self.notificationErrorMessage = "通知权限请求失败：\(error.localizedDescription)"
@@ -2147,7 +2158,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             trigger: nil
         )
 
-        notificationCenter.add(request) { [weak self] error in
+        notificationCenter?.add(request) { [weak self] error in
             DispatchQueue.main.async {
                 if let error {
                     self?.notificationErrorMessage = "系统提醒测试失败：\(error.localizedDescription)"
@@ -2255,7 +2266,7 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
             trigger: nil
         )
 
-        notificationCenter.add(request) { [weak self] error in
+        notificationCenter?.add(request) { [weak self] error in
             guard let error else {
                 return
             }
@@ -2319,6 +2330,11 @@ final class OneMenuApp: NSObject, NSApplicationDelegate, UNUserNotificationCente
         }
 
         updateSleepPreventionMenuCheck()
+        collapseMenuItem.state = separatorManager.isCollapsed ? .on : .off
+    }
+
+    @objc private func toggleCollapseFromMenu(_ sender: Any?) {
+        separatorManager.toggle()
     }
 
     private func updateSleepPreventionMenuCheck() {
@@ -2949,6 +2965,106 @@ final class StatusBarDisplayPreferences {
     }
 }
 
+final class MenuBarSeparatorManager: NSObject {
+    private enum Const {
+        static let separatorLength: CGFloat = 8
+        static let chevronLength: CGFloat = 24
+        static let spacerCollapsedLength: CGFloat = 10000
+    }
+
+    let separatorItem: NSStatusItem
+    let chevronItem: NSStatusItem
+    private let spacerItem: NSStatusItem
+    private let defaults: UserDefaults
+
+    var onSeparatorClick: (() -> Void)?
+
+    var isCollapsed: Bool {
+        get { defaults.bool(forKey: "menuBarSeparator.isCollapsed") }
+        set {
+            defaults.set(newValue, forKey: "menuBarSeparator.isCollapsed")
+            applyState()
+        }
+    }
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        separatorItem = NSStatusBar.system.statusItem(withLength: Const.separatorLength)
+        chevronItem = NSStatusBar.system.statusItem(withLength: Const.chevronLength)
+        spacerItem = NSStatusBar.system.statusItem(withLength: 0)
+        super.init()
+        configureButtons()
+        applyState()
+    }
+
+    func toggle() {
+        isCollapsed.toggle()
+    }
+
+    private func applyState() {
+        separatorItem.isVisible = !isCollapsed
+        separatorItem.button?.image = separatorLineIcon()
+        chevronItem.button?.attributedTitle = chevronAttributedTitle()
+        chevronItem.button?.toolTip = isCollapsed ? "展开菜单栏图标" : "收起菜单栏图标"
+        spacerItem.length = isCollapsed ? Const.spacerCollapsedLength : 0
+        spacerItem.isVisible = isCollapsed
+    }
+
+    private func configureButtons() {
+        if let button = separatorItem.button {
+            button.imagePosition = .imageOnly
+            button.image = separatorLineIcon()
+            button.target = self
+            button.action = #selector(handleSeparatorClick(_:))
+            button.sendAction(on: .leftMouseUp)
+            button.toolTip = "分隔栏设置"
+        }
+        if let button = chevronItem.button {
+            button.attributedTitle = chevronAttributedTitle()
+            button.toolTip = isCollapsed ? "展开菜单栏图标" : "收起菜单栏图标"
+            button.target = self
+            button.action = #selector(handleChevronClick(_:))
+            button.sendAction(on: .leftMouseUp)
+        }
+    }
+
+    @objc private func handleChevronClick(_ sender: Any?) {
+        toggle()
+    }
+
+    @objc private func handleSeparatorClick(_ sender: Any?) {
+        onSeparatorClick?()
+    }
+
+    private func separatorLineIcon() -> NSImage {
+        let image = NSImage(size: NSSize(width: 8, height: 18))
+        image.isTemplate = true
+        image.lockFocus()
+        let path = NSBezierPath()
+        path.lineWidth = 2
+        path.lineCapStyle = .round
+        path.move(to: NSPoint(x: 4, y: 3))
+        path.line(to: NSPoint(x: 4, y: 15))
+        NSColor.labelColor.setStroke()
+        path.stroke()
+        image.unlockFocus()
+        return image
+    }
+
+    private func chevronAttributedTitle() -> NSAttributedString {
+        let char = isCollapsed ? "<" : ">"
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 14, weight: .bold),
+            .foregroundColor: NSColor.labelColor
+        ]
+        return NSAttributedString(string: char, attributes: attrs)
+    }
+
+    func updateToolTip() {
+        chevronItem.button?.toolTip = isCollapsed ? "展开菜单栏图标" : "收起菜单栏图标"
+    }
+}
+
 enum HardwareStatusBarMetric: String, CaseIterable, Hashable {
     case cpuUsage
     case memoryUsage
@@ -3083,6 +3199,22 @@ private final class SleepPreventer {
     }
 
     func enable(durationMinutes: Int = 0) -> String? {
+        // Handle auto-disable timer regardless of assertion state
+        autoDisableWorkItem?.cancel()
+        autoDisableWorkItem = nil
+
+        if durationMinutes > 0 {
+            let item = DispatchWorkItem { [weak self] in
+                guard let self, self.isEnabled else { return }
+                self.disable()
+                DispatchQueue.main.async {
+                    self.onAutoDisabled?()
+                }
+            }
+            autoDisableWorkItem = item
+            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(durationMinutes * 60), execute: item)
+        }
+
         guard !hasActiveAssertions else {
             isEnabled = true
             return nil
@@ -3112,20 +3244,6 @@ private final class SleepPreventer {
 
         isEnabled = true
         enabledAt = Date()
-
-        // Auto-disable timer
-        autoDisableWorkItem?.cancel()
-        if durationMinutes > 0 {
-            let item = DispatchWorkItem { [weak self] in
-                guard let self, self.isEnabled else { return }
-                self.disable()
-                DispatchQueue.main.async {
-                    self.onAutoDisabled?()
-                }
-            }
-            autoDisableWorkItem = item
-            DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(durationMinutes * 60), execute: item)
-        }
 
         return nil
     }
